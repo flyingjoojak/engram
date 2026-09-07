@@ -54,7 +54,7 @@
   <img src="docs/assets/map.ko.gif" alt="Engram의 3D 시맨틱 지도 - 대화가 주제별 군집으로 묶여 회전하는 3D 뷰" width="880">
 </div>
 
-**모든 세션이 클릭 한 번 거리** - 묶이고, 시각이 찍히고, 검색됩니다.
+**지난 세션도 클릭 한 번** - 날짜별로 정리돼 있고, 바로 검색됩니다.
 
 <div align="center">
   <img src="docs/assets/sessions.ko.png" alt="Engram의 세션 브라우저 - 과거 대화 목록" width="880">
