@@ -1215,10 +1215,14 @@ def api_index_status():
     크로스-프로세스 락으로 확인해 running/external 에 반영한다(배너·설정 버튼 상태 일관성)."""
     st = dict(_autoindex_state)
     external = False
-    if not (_autoindex_state.get("running") or _reindex_state.get("running")):
+    # 외부(OS 스케줄러의 별도 engram index) 색인은 이 프로세스가 idle 이고, 인-프로세스 자동색인이
+    # 담당자가 아닐 때(enabled=False = 스케줄러/off 모드)만 의미가 있다. interval/realtime 은 이
+    # 프로세스가 색인하므로 매 폴링마다 락 파일 검사(파일열기+락+쓰기)를 돌릴 필요가 없다.
+    if not (_autoindex_state.get("running") or _reindex_state.get("running")
+            or _autoindex_state.get("enabled")):
         with contextlib.suppress(Exception):
-            from .proclock import is_locked
-            external = is_locked()
+            from .proclock import held_here, is_locked
+            external = is_locked() and not held_here()   # 자기 프로세스 보유분은 외부로 오인하지 않음
         if external:
             st["running"] = True          # 설정 버튼 비활성·표시를 배너와 일치시킴(라벨은 프론트 i18n)
     st["external"] = external
@@ -1231,8 +1235,8 @@ def api_index_run():
     """수동 증분 색인(새 대화만, 빠름). 이미 색인/재색인 중이면 busy."""
     if _autoindex_state.get("running") or _reindex_state.get("running"):
         return {"ok": False, "busy": True}
-    from .proclock import is_locked
-    if is_locked():                          # 다른 프로세스(스케줄러)가 색인 중
+    from .proclock import held_here, is_locked
+    if is_locked() and not held_here():      # 다른 프로세스(스케줄러)가 색인 중
         return {"ok": False, "busy": True}
     threading.Thread(target=_run_incremental, daemon=True).start()
     return {"ok": True, "started": True}
@@ -1441,8 +1445,8 @@ def api_reindex(payload: dict):
         return {"ok": False, "error": "알 수 없는 모델", "code": "unknown_model"}
     if _reindex_state["running"] or _autoindex_state.get("running"):
         return {"ok": False, "error": "이미 색인/재색인 중", "code": "reindex_already_running"}
-    from .proclock import is_locked
-    if is_locked():                          # 다른 프로세스(스케줄러)가 색인 중
+    from .proclock import held_here, is_locked
+    if is_locked() and not held_here():      # 다른 프로세스(스케줄러)가 색인 중
         return {"ok": False, "error": "다른 프로세스 색인 중 — 잠시 후 재시도", "code": "reindex_already_running"}
     fast = bool(payload.get("fast"))
     try:

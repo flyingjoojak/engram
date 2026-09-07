@@ -24,11 +24,13 @@ def test_second_acquire_denied_same_holder(monkeypatch, tmp_path):
     a = pl.IndexLock()
     assert a.acquire() is True
     try:
+        assert pl.held_here() is True     # 이 프로세스가 쥐고 있음
         b = pl.IndexLock()
         assert b.acquire() is False       # 이미 잡혀 있으면 두 번째는 실패
         assert pl.is_locked() is True     # 잡힌 상태로 판정
     finally:
         a.release()
+    assert pl.held_here() is False        # 해제 후 보유 카운트 0
 
 
 def test_release_allows_reacquire(monkeypatch, tmp_path):
@@ -76,6 +78,7 @@ def test_cross_process_mutual_exclusion(monkeypatch, tmp_path):
             __import__("time").sleep(0.02)
         assert ready.exists(), "자식이 락을 못 잡음"
         assert pl.is_locked() is True             # 다른 프로세스가 쥔 걸 감지
+        assert pl.held_here() is False            # 그 락은 이 프로세스 것이 아님(자식 것)
         assert pl.IndexLock().acquire() is False  # 이 프로세스는 못 얻음
     finally:
         goahead.write_text("go")

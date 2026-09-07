@@ -83,30 +83,9 @@ def cmd_index(args: argparse.Namespace) -> int:
     db = ArchiveDB()   # 값싼 오픈(모델 로드 없음)
     vi = make_index()
 
-    # 0) 고아 벡터 정리(모델 불필요·값쌈) — 매 회차 안전망.
-    try:
-        reconcile(db, vi, log_fn=batch_log)
-    except Exception as ex:
-        batch_log(f"reconcile 오류: {ex}")
-
-    # 1) 새 대화 없으면 모델 로드조차 안 하고 즉시 종료(자리 비우면 스파이크 0). 로그도 안 남김.
-    if not args.force and not has_new_data(db):
-        return 0
-
-    # 2) 메모리 가드: RAM 빠듯하면 이번 회차 건너뜀(커서라 손실 0).
-    avail = available_mb()
-    if avail is not None and avail < MIN_FREE_MB and not args.force:
-        msg = f"메모리 부족({avail}MB < {MIN_FREE_MB}MB) — 이번 배치 건너뜀(다음 주기 재시도). 강제: --force"
-        print(msg)
-        batch_log(msg)
-        return 0
-
-    # 3) 여기서만 무거운 임베딩 모델 로드
-    stored = db.get_meta("embed_model")
-    if stored and stored != EMBED_MODEL:
-        print(f"[경고] 인덱스 모델({stored}) ≠ 설정 모델({EMBED_MODEL}). 재색인 필요.", file=sys.stderr)
     # 크로스-프로세스 상호배제: 웹(Electron 셸) 인-프로세스 색인/재색인과 동시에 같은
-    # archive.db 를 건드리지 않게. 다른 프로세스가 색인 중이면 이번 실행은 건너뛴다(다음 주기 재시도).
+    # archive.db·벡터 인덱스를 건드리지 않게. reconcile(벡터 저장 포함)부터 락 아래에서 수행한다
+    # — 다른 프로세스가 색인 중이면 이번 실행은 통째로 건너뛴다(다음 주기 재시도).
     from .proclock import IndexLock
     _xlock = IndexLock()
     if not _xlock.acquire():
@@ -115,6 +94,28 @@ def cmd_index(args: argparse.Namespace) -> int:
         batch_log(msg)
         return 0
     try:
+        # 0) 고아 벡터 정리(모델 불필요·값쌈) — 매 회차 안전망.
+        try:
+            reconcile(db, vi, log_fn=batch_log)
+        except Exception as ex:
+            batch_log(f"reconcile 오류: {ex}")
+
+        # 1) 새 대화 없으면 모델 로드조차 안 하고 즉시 종료(자리 비우면 스파이크 0). 로그도 안 남김.
+        if not args.force and not has_new_data(db):
+            return 0
+
+        # 2) 메모리 가드: RAM 빠듯하면 이번 회차 건너뜀(커서라 손실 0).
+        avail = available_mb()
+        if avail is not None and avail < MIN_FREE_MB and not args.force:
+            msg = f"메모리 부족({avail}MB < {MIN_FREE_MB}MB) — 이번 배치 건너뜀(다음 주기 재시도). 강제: --force"
+            print(msg)
+            batch_log(msg)
+            return 0
+
+        # 3) 여기서만 무거운 임베딩 모델 로드
+        stored = db.get_meta("embed_model")
+        if stored and stored != EMBED_MODEL:
+            print(f"[경고] 인덱스 모델({stored}) ≠ 설정 모델({EMBED_MODEL}). 재색인 필요.", file=sys.stderr)
         from .embedder import Embedder
         embedder = Embedder()
 
