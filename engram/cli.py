@@ -352,7 +352,7 @@ def main(argv: list[str] | None = None) -> int:
         except Exception:
             pass
 
-    p = argparse.ArgumentParser(prog="mem", description="대화 정보자산 검색")
+    p = argparse.ArgumentParser(prog="engram", description="대화 정보자산 검색")
     sub = p.add_subparsers(dest="cmd")
 
     s = sub.add_parser("search", help="의미 검색")
