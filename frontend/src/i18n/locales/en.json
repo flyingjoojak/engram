@@ -131,7 +131,7 @@
     "allSourcesOff": "All sources are off - new conversations won't be indexed.",
     "sourcesNote": "Turning a source off means it's <b>skipped starting with the next index</b>. Conversations already stored stay searchable.",
     "skipSdk": "Exclude automation (SDK · claude -p)",
-    "skipSdkHelp": "Skips code-driven sessions (claude -p, scripts). Turn on to drop throwaway automation. Applies to the next index.",
+    "skipSdkHelp": "Skips code-driven sessions (claude -p, scripts). Turn off to keep automation too. Applies to the next index.",
     "backend": "Summary AI",
     "backendAria": "Summary AI",
     "backendClaude": "Claude Code subscription",

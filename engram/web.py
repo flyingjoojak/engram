@@ -979,6 +979,7 @@ def api_config():
     import os
 
     from . import config as C
+    from . import parser as _parser
     try:
         from .enrich import resolve_claude_bin
         _claude = resolve_claude_bin()
@@ -1015,8 +1016,8 @@ def api_config():
         "jsonl_count": _jsonl_count_cached(),
         # 멀티소스 색인 현황(claude-code + codex …). 루트 없는 소스는 active=false.
         "sources": _sources_info_cached(),
-        # 자동화(SDK/claude -p) 세션 제외 여부. 켜면 promptSource=sdk 프롬프트를 색인에서 뺀다.
-        "skip_sdk": os.environ.get("ENGRAM_SKIP_SDK_SESSIONS", "").strip().lower() in ("1", "true", "yes", "on"),
+        # 자동화(SDK/claude -p) 세션 제외 여부(기본 켜짐). 켜면 promptSource=sdk 프롬프트를 색인에서 뺀다.
+        "skip_sdk": _parser.skip_sdk_enabled(),
     }
 
 

@@ -104,9 +104,10 @@ Claude Code / Codex logs  →  read incrementally  →  conversations (question 
       →  hybrid search: meaning ⊕ keywords
 ```
 
-Everything Claude Code and Codex log is indexed by default. If you run `claude -p` automation (CI, cron, git
-hooks) and want those one-shot sessions kept out, set `ENGRAM_SKIP_SDK_SESSIONS=1` - it drops SDK-driven
-prompts. It's off by default because SDK-driven doesn't always mean throwaway (some people work through the SDK).
+Your human conversations with Claude Code and Codex get indexed. One-shot SDK sessions from `claude -p`
+automation (CI, cron, git hooks) are **excluded by default** - once something is indexed it's hard to remove
+today, so the default errs on the side of not keeping throwaway runs. If you actually work through the SDK and
+want those conversations kept, turn it off with `ENGRAM_SKIP_SDK_SESSIONS=0`.
 
 Your **raw conversations are the source of truth**; the search index is just a regenerable derivative, so
 re-indexing or switching models is always lossless.

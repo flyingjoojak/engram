@@ -459,7 +459,7 @@ export function SettingsView() {
   const [indexTime, setIndexTime] = useState("03:00")       // scheduled 색인 시각
   const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434/v1")
   const [claudeBin, setClaudeBin] = useState("")   // claude CLI 경로 override(빈값=자동 탐색)
-  const [skipSdk, setSkipSdk] = useState(false)    // 자동화(SDK/claude -p) 세션 제외
+  const [skipSdk, setSkipSdk] = useState(true)     // 자동화(SDK/claude -p) 세션 제외 - 기본 켜짐
   const [skipSdkBusy, setSkipSdkBusy] = useState(false)
   const [saved, setSaved] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -547,7 +547,7 @@ export function SettingsView() {
     if (skipSdkBusy) return
     setSkipSdkBusy(true); setSkipSdk(next)
     try {
-      await putConfig({ ENGRAM_SKIP_SDK_SESSIONS: next ? "1" : "" })
+      await putConfig({ ENGRAM_SKIP_SDK_SESSIONS: next ? "1" : "0" })   // 끌 땐 명시적 0(기본이 켜짐이라 빈값=켜짐)
       getConfig().then(setCfg).catch(() => {})
     } catch {
       setSkipSdk(!next)   // 실패 시 되돌림
