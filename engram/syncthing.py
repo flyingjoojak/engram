@@ -1,6 +1,6 @@
 """임베디드 Syncthing 관리 (E1): 바이너리 확보 + 헤드리스 spawn + 헬스체크 + Device ID.
 
-재구현이 아니라 성숙한 Syncthing 엔진을 engram가 대신 운전한다(SESSION_SYNC_SPEC.md §14).
+재구현이 아니라 성숙한 Syncthing 엔진을 engram가 대신 운전한다.
 - 바이너리 확보 순서: (1) env override (2) 프리즈 번들(sys._MEIPASS) (3) 캐시 (4) GitHub 릴리스 다운로드.
 - 동기를 켤 때만 spawn(지연 실행) — 단일 기기 사용자는 오버헤드 0.
 - 제어는 REST(127.0.0.1:<gui_port>, X-API-Key)로. GUI 주소·키는 우리가 랜덤 생성해 주입.
@@ -348,7 +348,7 @@ class Syncthing:
             "id": folder_id, "label": label, "path": str(projects_dir),
             "type": "sendreceive",
             "devices": [{"deviceID": d} for d in ids],
-            # 삭제·덮어쓰기 이력 보존(실수 대비) — SESSION_SYNC_SPEC §5.4.
+            # 삭제·덮어쓰기 이력 보존(실수 대비).
             "versioning": {"type": "staggered", "params": {"maxAge": str(VERSIONING_MAX_AGE_SEC)}},
         }
         self._req("PUT", f"/rest/config/folders/{folder_id}", body)

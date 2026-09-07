@@ -109,7 +109,7 @@ hooks) and want those one-shot sessions kept out, set `ENGRAM_SKIP_SDK_SESSIONS=
 prompts. It's off by default because SDK-driven doesn't always mean throwaway (some people work through the SDK).
 
 Your **raw conversations are the source of truth**; the search index is just a regenerable derivative, so
-re-indexing or switching models is always lossless. Design notes: [SPEC.md](SPEC.md).
+re-indexing or switching models is always lossless.
 
 ---
 

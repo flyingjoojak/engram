@@ -1,4 +1,0 @@
-# 로컬 웹 UI 전용 (코어는 requirements.txt 로 충분).
-# 설치: pip install -r requirements-web.txt
-fastapi>=0.115
-uvicorn>=0.30
