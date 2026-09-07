@@ -156,6 +156,25 @@ def is_real_user_prompt(obj: dict) -> bool:
     return True
 
 
+def is_sdk_prompt(obj: dict) -> bool:
+    """제외 대상(promptSource="sdk") 이면서, 그 필터만 없었다면 실제 사용자 질문 턴이었을 프롬프트인지.
+
+    skip 설정과 무관하게 'sdk 여부'만 본다 — 제외 개수 집계용(UI 표기).
+    is_real_user_prompt 의 sdk 필터를 뺀 나머지 조건과 동일해야 집계가 정확하다.
+    """
+    if obj.get("promptSource") != "sdk":
+        return False
+    if obj.get("type") != "user":
+        return False
+    msg = obj.get("message") or {}
+    if msg.get("role") != "user":
+        return False
+    text = _user_text(msg.get("content"))
+    if text is None:
+        return False
+    return not _is_plumbing(text)
+
+
 def _summarize_action(block: dict) -> Action:
     name = block.get("name", "tool")
     inp = block.get("input") or {}

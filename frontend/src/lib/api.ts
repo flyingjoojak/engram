@@ -139,6 +139,10 @@ export interface IndexStatus {
 }
 export const getIndexStatus = () => getJSON<IndexStatus>(`/api/index/status`)
 
+export interface SkipSdkStats { sessions: number; turns: number; enabled: boolean }
+// 자동화(sdk) 제외 대상 규모. 원문 스캔이라 백엔드가 60s 캐시 → 설정 화면 마운트 시 1회 조회(폴링 아님).
+export const getSkipSdkStats = () => getJSON<SkipSdkStats>(`/api/skip-sdk-stats`)
+
 // 수동 증분 색인(새 대화만).
 export async function runIndex(): Promise<{ ok: boolean; started?: boolean; busy?: boolean }> {
   const r = await fetch(`/api/index/run`, { method: "POST" })
