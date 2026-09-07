@@ -149,21 +149,25 @@ def cmd_enrich(args: argparse.Namespace) -> int:
 
 
 def cmd_progress(args: argparse.Namespace) -> int:
-    import glob
-    import os
-
-    from .config import PROJECTS_DIR
+    from .sources import active_sources
 
     db, vi, _ = _open(need_embedder=False)
-    total = len(glob.glob(str(PROJECTS_DIR) + "/**/*.jsonl", recursive=True))
+    # total = 커서와 같은 집합(활성 소스 전체가 발견하는 파일)으로 세야 done/total 이 맞는다.
+    # 구버전은 Claude Code 폴더만 세서 Codex 파일이 들어가면 done>total(>100%)이 됐다.
+    total = 0
+    for _name, adapter, root in active_sources():
+        try:
+            total += sum(1 for _ in adapter.discover(root))
+        except Exception:  # noqa: BLE001 — 한 소스 walk 실패가 진행률 출력을 막지 않게
+            pass
     done = db.conn.execute("SELECT COUNT(*) c FROM cursors").fetchone()["c"]
     turns = db.conn.execute("SELECT COUNT(*) c FROM turns").fetchone()["c"]
     chunks = db.conn.execute("SELECT COUNT(*) c FROM chunks").fetchone()["c"]
     sess = db.conn.execute("SELECT COUNT(DISTINCT session_id) c FROM turns").fetchone()["c"]
-    pct = 100 * done / total if total else 0
-    filled = int(pct // 4)
+    pct = min(100.0, 100 * done / total) if total else 0.0   # 파일 삭제 등으로 done>total 이어도 100% 상한
+    filled = min(25, int(pct // 4))
     bar = "#" * filled + "-" * (25 - filled)
-    print(f"[{bar}] {done}/{total} 파일 ({pct:.1f}%)")
+    print(f"[{bar}] {min(done, total)}/{total} 파일 ({pct:.1f}%)")
     print(f"누적: 세션 {sess} · 턴 {turns} · 청크/벡터 {chunks}")
     return 0
 
