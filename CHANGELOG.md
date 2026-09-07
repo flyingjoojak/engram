@@ -3,7 +3,7 @@
 이 파일은 사용자에게 보이는 변경을 기록합니다. 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/),
 버전은 [유의적 버전](https://semver.org/lang/ko/)을 따릅니다.
 
-릴리스 방법은 [README의 릴리스 섹션](README.ko.md)을 참고하세요. 새 버전을 태그하면 GitHub 릴리스가
+릴리스 방법은 [README의 릴리스 섹션](README.md)을 참고하세요. 새 버전을 태그하면 GitHub 릴리스가
 만들어지고, **그 릴리스 본문이 앱의 업데이트 배너에 그대로 표시**됩니다. 아래처럼
 `<!--lang:ko-->` / `<!--lang:en-->` 마커로 나눠 두면, 배너가 사용자 언어에 맞는 섹션만 보여줍니다.
 

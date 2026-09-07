@@ -1,8 +1,8 @@
 # README 미디어 에셋
 
-이 폴더의 이미지는 루트 `README.md` / `README.ko.md`에서 상대경로로 참조됩니다.
+이 폴더의 이미지는 루트 `README.md`(한국어, 기본) / `README.en.md`(영어)에서 상대경로로 참조됩니다.
 
-영어 README(`README.md`)는 접미사 없는 파일을, 한국어 README(`README.ko.md`)는 `.ko` 접미사 파일을 씁니다.
+한국어 README(`README.md`, 기본)는 `.ko` 접미사 파일을, 영어 README(`README.en.md`)는 접미사 없는 파일을 씁니다.
 
 | 파일 | 용도 | 상태 |
 |------|------|------|
