@@ -62,21 +62,31 @@
 
 ## 다운로드
 
-> **플랫폼 지원 현황:** **Windows**는 빌드하고 실제 실행까지 확인했습니다. **macOS·Linux**는 자동 빌드는 되지만 **아직 실기기에서 테스트하지 못했습니다.** 잘 동작하지 않을 수 있으니, 문제가 생기면 [이슈](https://github.com/flyingjoojak/engram/issues)로 알려주시면 고치겠습니다.
+> **플랫폼 지원 현황:** **Windows**와 **macOS**는 빌드하고 실기기에서 테스트했습니다. **Linux**는 자동 빌드는 되지만 **아직 실기기에서 테스트하지 못했습니다.** 잘 동작하지 않을 수 있으니, 문제가 생기면 [이슈](https://github.com/flyingjoojak/engram/issues)로 알려주시면 고치겠습니다.
 
 최신 빌드는 [**Releases**](https://github.com/flyingjoojak/engram/releases)에 올라옵니다.
 
-### 🪟 Windows - 권장 · 검증됨
+### 🪟 Windows - 검증됨
 
 1. `Engram-Setup-<버전>.exe` 를 받아 실행합니다.
 2. "Windows의 PC 보호" 경고가 뜨면 **추가 정보 → 실행**. (아직 코드 서명을 안 해서 뜨는 경고일 뿐이며 안전합니다.)
 
-### 🍎 macOS - 아직 테스트 안 됨
+### 🍎 macOS - Homebrew 권장
 
 ```bash
 brew tap flyingjoojak/engram https://github.com/flyingjoojak/engram
 brew install --cask flyingjoojak/engram/engram
 ```
+
+Homebrew가 격리(quarantine)를 대신 풀어줘서 Gatekeeper 경고 없이 설치되고, `brew upgrade --cask engram` 으로 자동 업데이트됩니다.
+
+**`.dmg` 로 직접 설치하려면?** [Releases](https://github.com/flyingjoojak/engram/releases)에서 받아 **Engram** 을 Applications 로 드래그한 뒤, 서명이 없어 격리를 풀어줘야 합니다:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Engram.app
+```
+
+그다음 평소처럼 실행. (또는 앱 우클릭 → **열기** 를 처음 한 번.)
 
 ### 🐧 Linux - 아직 테스트 안 됨
 

@@ -62,21 +62,31 @@ on your own machine, in the background, and lets you find any of them in a secon
 
 ## Download
 
-> **Platform status:** **Windows** is built and verified end to end. **macOS and Linux** builds are produced automatically but **haven't been tested on real hardware yet**, so they may not work smoothly. If something breaks, please [open an issue](https://github.com/flyingjoojak/engram/issues) and I'll fix it.
+> **Platform status:** **Windows** and **macOS** are built and tested on real hardware. **Linux** builds are produced automatically but **haven't been tested on real hardware yet**, so it may not work smoothly. If something breaks, please [open an issue](https://github.com/flyingjoojak/engram/issues) and I'll fix it.
 
 Builds land on the [**Releases**](https://github.com/flyingjoojak/engram/releases) page.
 
-### 🪟 Windows - recommended · verified
+### 🪟 Windows - verified
 
 1. Download `Engram-Setup-<version>.exe` and run it.
 2. If Windows shows a "protected your PC" warning, click **More info → Run anyway**. (It's just because the app isn't code-signed yet - it's safe.)
 
-### 🍎 macOS - not tested yet
+### 🍎 macOS - Homebrew recommended
 
 ```bash
 brew tap flyingjoojak/engram https://github.com/flyingjoojak/engram
 brew install --cask flyingjoojak/engram/engram
 ```
+
+Homebrew removes the quarantine flag for you, so there's no Gatekeeper warning, and `brew upgrade --cask engram` keeps it up to date.
+
+**Prefer the `.dmg`?** Download it from [Releases](https://github.com/flyingjoojak/engram/releases), drag **Engram** to Applications, then remove the quarantine flag (the app isn't code-signed yet):
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Engram.app
+```
+
+Then open it normally. (Or right-click the app → **Open** the first time.)
 
 ### 🐧 Linux - not tested yet
 
