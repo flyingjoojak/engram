@@ -122,35 +122,48 @@ def test_tool_result_not_a_prompt():
     assert not is_real_user_prompt(obj)
 
 
-# --- sdk 세션은 기본 색인, 옵트인일 때만 제외 --------------------------
+# --- sdk 세션은 기본 제외, ENGRAM_SKIP_SDK_SESSIONS=0 일 때만 포함 -------
 def _user_src(uuid, text, src):
     o = _user(uuid, text)
     o["promptSource"] = src
     return o
 
 
-def test_sdk_prompt_indexed_by_default():
-    # sdk 는 SDK/통합 사용일 수도 있어 기본은 색인(그런 기기는 대화가 전부 sdk).
-    assert is_real_user_prompt(_user_src("u1", "run the nightly summary", "sdk"))
+def test_sdk_prompt_excluded_by_default(monkeypatch):
+    # 기본 켜짐: sdk(claude -p 등 자동화)는 제외. 한 번 색인하면 못 지우니 손실 없는 쪽이 기본.
+    monkeypatch.delenv("ENGRAM_SKIP_SDK_SESSIONS", raising=False)
+    assert not is_real_user_prompt(_user_src("u1", "run the nightly summary", "sdk"))
 
 
-def test_system_prompt_not_specially_filtered_by_promptsource():
+def test_system_prompt_not_specially_filtered_by_promptsource(monkeypatch):
     # system(<task-notification> 등)은 promptSource 가 아니라 기존 plumbing 필터가 처리한다.
     # 실텍스트를 가진 system 프롬프트는 promptSource 때문에 제외되지 않는다(회귀 방지: 맥 typed=1 대량손실).
+    monkeypatch.delenv("ENGRAM_SKIP_SDK_SESSIONS", raising=False)
     assert is_real_user_prompt(_user_src("u1", "이 버그 고쳐줘", "system"))
 
 
-def test_all_prompt_sources_indexed_by_default():
-    for src in ("typed", "queued", "suggestion_accepted", "sdk", "system"):
+def test_non_sdk_sources_indexed_by_default(monkeypatch):
+    # 기본 켜짐이라도 sdk 만 제외 — 사람 소스(typed 등)와 system 은 그대로 색인.
+    monkeypatch.delenv("ENGRAM_SKIP_SDK_SESSIONS", raising=False)
+    for src in ("typed", "queued", "suggestion_accepted", "system"):
         assert is_real_user_prompt(_user_src("u1", "이거 고쳐줘", src)), src
+    assert not is_real_user_prompt(_user_src("u1", "이거 고쳐줘", "sdk"))
 
 
-def test_missing_prompt_source_treated_as_human():
+def test_missing_prompt_source_treated_as_human(monkeypatch):
+    monkeypatch.delenv("ENGRAM_SKIP_SDK_SESSIONS", raising=False)
     assert is_real_user_prompt(_user("u1", "질문"))
 
 
-def test_sdk_opt_out_env_excludes_sdk_only(monkeypatch):
-    # 옵트인(SKIP)이면 sdk 만 제외. system 등은 여전히 promptSource 로 제외하지 않는다.
+def test_sdk_opt_in_env_includes_sdk(monkeypatch):
+    # ENGRAM_SKIP_SDK_SESSIONS=0 으로 끄면 sdk 도 색인(SDK 로 실제 작업하는 사람용).
+    monkeypatch.setenv("ENGRAM_SKIP_SDK_SESSIONS", "0")
+    assert is_real_user_prompt(_user_src("u1", "run the nightly summary", "sdk"))
+    assert is_real_user_prompt(_user_src("u1", "이거 고쳐줘", "typed"))
+
+
+def test_sdk_explicit_on_excludes_sdk_only(monkeypatch):
+    # 명시적으로 켜도(=1) sdk 만 제외. system 등은 promptSource 로 제외하지 않는다.
     monkeypatch.setenv("ENGRAM_SKIP_SDK_SESSIONS", "1")
     assert not is_real_user_prompt(_user_src("u1", "run the nightly summary", "sdk"))
     assert is_real_user_prompt(_user_src("u1", "이거 고쳐줘", "typed"))

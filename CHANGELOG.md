@@ -15,7 +15,7 @@
 - **Claude Code와 Codex 로그를 함께 색인** - 두 도구가 기기에 남기는 대화 로그를 자동으로 읽어 소스별로 분류.
 - **첫 실행 언어 선택** - 온보딩에서 언어(한국어/영어)를 먼저 고르면 이어지는 화면이 그 언어로 표시.
 - **첫 색인 진행 안내** - 처음 대화를 색인하는 동안 상단 배너로 진행 상황(색인된 개수)을 보여줌.
-- **자동화(SDK·claude -p) 세션 제외 토글** - 스크립트·헤드리스로 돌린 세션을 색인에서 뺄 수 있음(기본은 전부 색인).
+- **자동화(SDK·claude -p) 세션 기본 제외** - 스크립트·헤드리스로 돌린 일회성 세션은 색인에서 제외(설정에서 끄면 포함). 한 번 색인하면 되돌리기 어려워 잃을 게 없는 쪽을 기본으로 함.
 - **로그 폴더 경로 직접 지정** - 자동 탐색에 더해 색인 소스에서 경로를 직접 바꿀 수 있음.
 - **Claude CLI 경로 설정(요약용)** - 자동 탐색 + 직접 지정(macOS에서 앱이 셸 PATH를 못 볼 때 대비).
 - **백그라운드(서브에이전트) 대화 색인** - 오래 운전한 배경 에이전트와의 대화를 **별도 세션**으로 검색·조회(일회성 도구 봇은 자동 제외).
@@ -53,7 +53,7 @@
 - **Indexes both Claude Code and Codex logs** - automatically reads the conversation logs both tools leave on your machine, tagged by source.
 - **First-run language pick** - onboarding asks for your language (Korean/English) first, then shows the rest in that language.
 - **First-index progress banner** - while your conversations are indexed for the first time, a top banner shows progress (how many indexed).
-- **Exclude automation (SDK · claude -p) toggle** - keep script/headless-driven sessions out of the index (everything is indexed by default).
+- **Automation (SDK · claude -p) sessions excluded by default** - one-shot script/headless sessions are kept out of the index (turn it off in settings to include them). Once indexed, entries are hard to remove today, so the default errs toward not keeping throwaway runs.
 - **Editable log-folder paths** - set a source's log folder directly, on top of auto-detection.
 - **Claude CLI path setting (for summaries)** - auto-detect plus manual override (for macOS where the app can't see your shell PATH).
 - **Background (sub-agent) conversation indexing** - long-running background-agent chats become their own **searchable sessions** (one-off tool bots are excluded automatically).

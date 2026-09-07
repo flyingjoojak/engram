@@ -18,8 +18,8 @@ from .models import Action, Turn
 logger = logging.getLogger(__name__)
 
 # promptSource="sdk" = 프로그램 구동(claude -p 자동화일 수도, 정식 SDK/통합 사용일 수도 있음).
-# 실측 결과 sdk 는 '버릴 자동화'와 '진짜 작업'을 구분하지 못한다(SDK/통합으로만 쓰는 기기는 전부 sdk).
-# 그래서 기본은 '전부 색인'이고, claude -p 더미만 빼고 싶은 사람은 ENGRAM_SKIP_SDK_SESSIONS 로 옵트인.
+# 기본은 '제외'(대다수는 버릴 자동화). 한 번 색인되면 (휴지통 기능 전까지) 되돌릴 수 없어,
+# 손실 없는 쪽을 기본으로 둔다. SDK/통합으로 실제 작업하는 사람은 ENGRAM_SKIP_SDK_SESSIONS=0 로 끈다.
 # (system=<task-notification> 등 주입 프롬프트는 promptSource 가 아니라 기존 plumbing/isMeta 필터가 처리한다.)
 _SKIP_SDK_ENV = "ENGRAM_SKIP_SDK_SESSIONS"
 
@@ -120,13 +120,21 @@ def _is_plumbing(text: str) -> bool:
     return text.lstrip().startswith(_PLUMBING_PREFIXES)
 
 
-def _is_skipped_sdk_prompt(obj: dict) -> bool:
-    """옵트인(ENGRAM_SKIP_SDK_SESSIONS)일 때만, promptSource="sdk" 프롬프트를 제외한다.
+def skip_sdk_enabled() -> bool:
+    """자동화(promptSource="sdk") 세션 제외 여부. 기본 켜짐.
 
-    기본은 제외 안 함(전부 색인). sdk 는 claude -p 일회성 자동화일 수도 있지만 정식 SDK/통합 사용일
-    수도 있어(그런 기기는 대화가 전부 sdk), 기본 제외 시 진짜 대화가 통째로 사라진다. 그래서 옵트인.
+    끄려면 ENGRAM_SKIP_SDK_SESSIONS=0(false/no/off). 그 외(미설정 포함)는 제외 켜짐.
     """
-    if os.environ.get(_SKIP_SDK_ENV, "").strip().lower() not in ("1", "true", "yes", "on"):
+    return os.environ.get(_SKIP_SDK_ENV, "").strip().lower() not in ("0", "false", "no", "off")
+
+
+def _is_skipped_sdk_prompt(obj: dict) -> bool:
+    """기본 켜짐: promptSource="sdk"(claude -p 등 자동화) 프롬프트를 제외한다.
+
+    한 번 색인하면 휴지통 기능 전까지 못 지우므로, 손실 없는 쪽(제외)을 기본으로 둔다.
+    SDK/통합으로 실제 작업하는 사람은 ENGRAM_SKIP_SDK_SESSIONS=0 으로 끈다.
+    """
+    if not skip_sdk_enabled():
         return False
     return obj.get("promptSource") == "sdk"
 
@@ -143,7 +151,7 @@ def is_real_user_prompt(obj: dict) -> bool:
         return False
     if _is_plumbing(text):
         return False
-    if _is_skipped_sdk_prompt(obj):   # 옵트인일 때만 claude -p 자동화(sdk) 제외
+    if _is_skipped_sdk_prompt(obj):   # 기본 켜짐: claude -p 자동화(sdk) 제외(=0 으로 끄면 포함)
         return False
     return True
 
