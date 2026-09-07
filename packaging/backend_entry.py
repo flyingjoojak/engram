@@ -23,18 +23,39 @@ if getattr(sys, "frozen", False):
             sys.stderr = _dn
 
 
+# 프리즈 exe가 CLI로 불릴 때 웹서버 대신 넘겨줄 서브커맨드(engram.cli 와 동일 집합).
+_CLI_COMMANDS = frozenset({
+    "search", "index", "enrich", "progress", "config", "setup", "app",
+    "scheduler", "reconcile", "stats", "web", "sync", "syncthing",
+})
+
+
 def main() -> None:
+    argv = list(sys.argv[1:])
+
+    # 스케줄러/CLI가 프리즈 exe를 통해 부를 때의 형태: `engram-backend.exe -m engram index`.
+    # PyInstaller exe는 파이썬 `-m 모듈` 실행을 못 해 이 인자를 무시하고 웹서버로 떨어졌다
+    # (→ 색인 대신 웹이 혼자 열림). 접두를 걷어내고 CLI 로 디스패치한다.
+    if argv[:2] == ["-m", "engram"]:
+        argv = argv[2:]
+
     # `engram-backend.exe --mcp` → 웹 대신 MCP(stdio) 서버로 동작.
     # 이래야 exe만 받은 사용자도 별도 설치 없이 MCP를 등록·실행할 수 있다
     # (frozen exe는 `-m engram.mcp_server`가 안 되므로 이 인자 모드가 유일한 경로).
-    if "--mcp" in sys.argv[1:]:
+    if "--mcp" in argv:
         from engram.mcp_server import main as mcp_main
         mcp_main()
         return
 
+    # 알려진 CLI 서브커맨드로 불렸으면(스케줄러 색인/정제/동기화 등) 웹서버가 아니라 CLI 실행.
+    # 포트 숫자·무인자(더블클릭)는 아래 웹서버 경로 그대로.
+    if argv and argv[0] in _CLI_COMMANDS:
+        from engram.cli import main as cli_main
+        raise SystemExit(cli_main(argv))
+
     port = 8765
-    if len(sys.argv) > 1 and sys.argv[1].isdigit():
-        port = int(sys.argv[1])
+    if argv and argv[0].isdigit():
+        port = int(argv[0])
     port = int(os.environ.get("ENGRAM_PORT", port))
 
     # managed=1: Electron 셸이 구동·감독. 셸이 창·단일인스턴스·로깅을 담당하므로 백엔드는
