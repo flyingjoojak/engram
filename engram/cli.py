@@ -105,16 +105,28 @@ def cmd_index(args: argparse.Namespace) -> int:
     stored = db.get_meta("embed_model")
     if stored and stored != EMBED_MODEL:
         print(f"[경고] 인덱스 모델({stored}) ≠ 설정 모델({EMBED_MODEL}). 재색인 필요.", file=sys.stderr)
-    from .embedder import Embedder
-    embedder = Embedder()
-
-    def log(msg: str) -> None:
+    # 크로스-프로세스 상호배제: 웹(Electron 셸) 인-프로세스 색인/재색인과 동시에 같은
+    # archive.db 를 건드리지 않게. 다른 프로세스가 색인 중이면 이번 실행은 건너뛴다(다음 주기 재시도).
+    from .proclock import IndexLock
+    _xlock = IndexLock()
+    if not _xlock.acquire():
+        msg = "다른 프로세스가 색인 중 — 이번 실행 건너뜀(다음 주기 재시도)"
         print(msg)
         batch_log(msg)
+        return 0
+    try:
+        from .embedder import Embedder
+        embedder = Embedder()
 
-    with keep_system_awake():  # 인덱싱 도중만 시스템 절전 방지(모니터는 꺼져도 됨)
-        total = index_all(db, vi, embedder, recent_first=not args.oldest_first, log_fn=log)
-    log(f"완료: 총 {total} 턴 인덱싱. 벡터 {len(vi)}개.")
+        def log(msg: str) -> None:
+            print(msg)
+            batch_log(msg)
+
+        with keep_system_awake():  # 인덱싱 도중만 시스템 절전 방지(모니터는 꺼져도 됨)
+            total = index_all(db, vi, embedder, recent_first=not args.oldest_first, log_fn=log)
+        log(f"완료: 총 {total} 턴 인덱싱. 벡터 {len(vi)}개.")
+    finally:
+        _xlock.release()
     return 0
 
 

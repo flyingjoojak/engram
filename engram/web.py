@@ -99,6 +99,7 @@ def _run_incremental(quick: bool = False) -> bool:
     if not _index_lock.acquire(blocking=False):
         return False
     try:
+        _xlock = None                       # 크로스-프로세스 락(무거운 경로 진입 시 획득)
         import time as _time
         from . import config as C
         from .archive_sync import device_id, export_archive, import_archives
@@ -116,6 +117,14 @@ def _run_incremental(quick: bool = False) -> bool:
             if not sweep_due and not (has_new_data(db) and heavy_due):
                 _autoindex_state.update(running=False, phase="새 대화 없음")
                 return True
+        # 크로스-프로세스 상호배제: OS 스케줄러가 띄운 별도 `engram index` 프로세스와 동시에
+        # 같은 archive.db 를 색인하지 않게. 다른 프로세스가 색인 중이면 이번 회차는 건너뛴다.
+        from .proclock import IndexLock
+        _xlock = IndexLock()
+        if not _xlock.acquire():
+            _xlock = None
+            _autoindex_state.update(running=False, phase="다른 프로세스 색인 중")
+            return True
         vi = make_index()
         _last_heavy_run[0] = _time.time()   # 무거운 경로 진입 시각(quick 스로틀용)
         with contextlib.suppress(Exception):
@@ -177,6 +186,8 @@ def _run_incremental(quick: bool = False) -> bool:
         _autoindex_state.update(running=False, phase="오류", last_error=str(ex))
         return True
     finally:
+        if _xlock is not None:
+            _xlock.release()
         _index_lock.release()
 
 
@@ -1198,14 +1209,30 @@ def _sources_info_cached() -> list:
 
 @app.get("/api/index/status")
 def api_index_status():
-    """증분 색인(자동/수동) 상태 + 대기(새 대화) 집계 — UI 표시용."""
-    return {**_autoindex_state, "pending": _pending_snapshot()["index"]}
+    """증분 색인(자동/수동) 상태 + 대기(새 대화) 집계 — UI 표시용.
+
+    이 프로세스가 색인 중이 아니면, 별도 프로세스(OS 스케줄러의 `engram index`)가 색인 중인지
+    크로스-프로세스 락으로 확인해 running/external 에 반영한다(배너·설정 버튼 상태 일관성)."""
+    st = dict(_autoindex_state)
+    external = False
+    if not (_autoindex_state.get("running") or _reindex_state.get("running")):
+        with contextlib.suppress(Exception):
+            from .proclock import is_locked
+            external = is_locked()
+        if external:
+            st["running"] = True          # 설정 버튼 비활성·표시를 배너와 일치시킴(라벨은 프론트 i18n)
+    st["external"] = external
+    st["pending"] = _pending_snapshot()["index"]
+    return st
 
 
 @app.post("/api/index/run")
 def api_index_run():
     """수동 증분 색인(새 대화만, 빠름). 이미 색인/재색인 중이면 busy."""
     if _autoindex_state.get("running") or _reindex_state.get("running"):
+        return {"ok": False, "busy": True}
+    from .proclock import is_locked
+    if is_locked():                          # 다른 프로세스(스케줄러)가 색인 중
         return {"ok": False, "busy": True}
     threading.Thread(target=_run_incremental, daemon=True).start()
     return {"ok": True, "started": True}
@@ -1414,6 +1441,9 @@ def api_reindex(payload: dict):
         return {"ok": False, "error": "알 수 없는 모델", "code": "unknown_model"}
     if _reindex_state["running"] or _autoindex_state.get("running"):
         return {"ok": False, "error": "이미 색인/재색인 중", "code": "reindex_already_running"}
+    from .proclock import is_locked
+    if is_locked():                          # 다른 프로세스(스케줄러)가 색인 중
+        return {"ok": False, "error": "다른 프로세스 색인 중 — 잠시 후 재시도", "code": "reindex_already_running"}
     fast = bool(payload.get("fast"))
     try:
         parallel = int(payload.get("parallel") or 2)
@@ -1424,8 +1454,14 @@ def api_reindex(payload: dict):
     def worker():
         from .embedder import Embedder
         from .indexer import backfill_missing, index_all
-        if not _index_lock.acquire(blocking=False):   # 증분 색인과 상호배제
+        if not _index_lock.acquire(blocking=False):   # 같은 프로세스 색인과 상호배제
             _reindex_state["msg"] = "다른 색인 진행 중 — 잠시 후 재시도"
+            return
+        from .proclock import IndexLock
+        _xlock = IndexLock()
+        if not _xlock.acquire():                       # 다른 프로세스(스케줄러) 색인과 상호배제
+            _index_lock.release()
+            _reindex_state["msg"] = "다른 프로세스 색인 중 — 잠시 후 재시도"
             return
         _reindex_state.update(running=True, done=0, msg="시작", done_files=0, total_files=0,
                               done_chunks=0, total_chunks=0)
@@ -1484,6 +1520,7 @@ def api_reindex(payload: dict):
             _reindex_state["msg"] = f"오류: {e}"
         finally:
             _reindex_state["running"] = False
+            _xlock.release()
             _index_lock.release()
 
     threading.Thread(target=worker, daemon=True).start()

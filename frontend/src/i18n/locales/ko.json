@@ -102,6 +102,7 @@
     "errorInline": "오류: {{error}}",
     "selfHealChunks": "자가복구 {{done}}/{{total}}개 조각 ({{pct}}%)",
     "indexingFiles": "색인 중 {{done}}/{{total}} 파일",
+    "indexingBackground": "백그라운드에서 색인 중",
     "selfHealing": "자가복구 중 - 빠진 색인 채우는 중",
     "indexingFilesEta": "색인 중… {{done}}/{{total}} 파일",
     "indexingShort": "색인 중…",

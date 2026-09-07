@@ -433,6 +433,7 @@ function AutoIndexRow({ ix }: { ix: IndexStatus | null }) {
     }>
       <span className="text-xs text-muted-foreground tabular-nums">
         {ix.last_error ? t("settings.errorInline", { error: ix.last_error })
+          : ix.external ? t("settings.indexingBackground")
           : ix.running && ix.total_chunks > 0 ? t("settings.selfHealChunks", { done: ix.done_chunks, total: ix.total_chunks, pct: pct(ix.done_chunks, ix.total_chunks) })
           : ix.running && ix.total_files > 0 ? t("settings.indexingFiles", { done: ix.done_files, total: ix.total_files })
           : ix.phase}
