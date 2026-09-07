@@ -40,6 +40,7 @@
 - 마우스 뒤로가기(4번 버튼)로 시작 화면("엔진 불러오는 중")에 갇히던 문제.
 - Syncthing 고아 프로세스가 폴더 락을 쥐어 기기 동기화가 안 켜지던 문제.
 - MCP 의존성 `mcp` 2.x 비호환(FastMCP 분리) → `<2` 고정.
+- 백그라운드(스케줄러) 색인이 도는데도 설정에서 색인 상태가 안 보이고 "지금 색인/전체 재색인" 버튼이 눌리던 문제(배너와 상태 불일치). 색인 상태를 프로세스 간 공유하고, 크로스-프로세스 락으로 동시 색인을 막음.
 
 ### Security
 - 서빙 화면에 Content-Security-Policy 및 보안 헤더 추가.
@@ -78,6 +79,7 @@
 - Getting stuck on the loading screen ("loading engine") after a mouse back-button (button 4) press.
 - Device sync failing to start because an orphaned Syncthing process held the folder lock.
 - MCP dependency `mcp` 2.x incompatibility (FastMCP split out) → pinned to `<2`.
+- Settings not showing indexing status (and leaving the "Index now / Full re-index" buttons clickable) while a background scheduler index was running — the banner and settings disagreed. Index status is now shared across processes, and a cross-process lock prevents concurrent indexing.
 
 ### Security
 - Added Content-Security-Policy and hardening headers to served pages.

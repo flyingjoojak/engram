@@ -102,6 +102,7 @@
     "errorInline": "Error: {{error}}",
     "selfHealChunks": "Self-heal {{done}}/{{total}} chunks ({{pct}}%)",
     "indexingFiles": "Indexing {{done}}/{{total}} files",
+    "indexingBackground": "Indexing in the background",
     "selfHealing": "Self-healing - filling in missing index entries",
     "indexingFilesEta": "Indexing… {{done}}/{{total}} files",
     "indexingShort": "Indexing…",
