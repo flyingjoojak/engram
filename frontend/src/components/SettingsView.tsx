@@ -511,7 +511,11 @@ export function SettingsView() {
     setIxStatus((s) => s ? { ...s, running: true, phase: t("settings.starting") } : s)
     try {
       const r = await runIndex()
-      if (r && r.ok === false) setIxStatus((s) => s ? { ...s, running: false, phase: errText(t, r, "settings.indexRunFailed") } : s)
+      if (r && r.ok === false) {
+        // busy = 에러가 아니라 "다른 색인 진행 중"(잠시 후 자가 교정). 실패 문구 대신 대기 안내.
+        const phase = r.busy ? t("settings.indexingBackground") : errText(t, r, "settings.indexRunFailed")
+        setIxStatus((s) => s ? { ...s, running: false, phase } : s)
+      }
     } catch (e) {
       setIxStatus((s) => s ? { ...s, running: false, phase: errText(t, e, "settings.indexRunFailed") } : s)
     }

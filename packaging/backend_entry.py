@@ -56,6 +56,12 @@ def main() -> None:
     port = 8765
     if argv and argv[0].isdigit():
         port = int(argv[0])
+    elif argv:
+        # 숫자도, --mcp 도, 알려진 서브커맨드도 아닌 인자로 여기 왔다 = 웹서버로 폴백.
+        # _CLI_COMMANDS 가 engram.cli 서브파서와 drift 나면(새 커맨드 추가 후 목록 누락) 정확히
+        # 이 경로로 조용히 새서, 예전 '웹이 혼자 열림' 버그가 재발한다. 최소한 흔적을 남긴다.
+        print(f"[engram-backend] 알 수 없는 인자 {argv!r} — 웹서버로 폴백(CLI 커맨드였다면 "
+              f"_CLI_COMMANDS 목록 확인 필요)", file=sys.stderr)
     port = int(os.environ.get("ENGRAM_PORT", port))
 
     # managed=1: Electron 셸이 구동·감독. 셸이 창·단일인스턴스·로깅을 담당하므로 백엔드는

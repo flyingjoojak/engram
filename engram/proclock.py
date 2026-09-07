@@ -12,9 +12,25 @@ OS 어드바이저리 락이라 프로세스가 죽어도 커널이 자동 해�
 from __future__ import annotations
 
 import contextlib
+import logging
 import os
 import sys
+import threading
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+# 이 프로세스가 락을 쥐고 있는 동안의 카운트. is_locked()는 "다른 프로세스"를 판정하는 용도이지만,
+# OS 어드바이저리 락은 fd 단위라 같은 프로세스가 다른 fd로 재시도하면 실패(=잡힘)로 나온다.
+# 그래서 호출측이 '자기 프로세스 보유분'을 제외할 수 있도록 held_here()를 제공한다.
+_held_lock = threading.Lock()
+_held_count = 0
+
+
+def held_here() -> bool:
+    """이 프로세스가 지금 색인 락을 쥐고 있는지."""
+    with _held_lock:
+        return _held_count > 0
 
 
 def _lock_path() -> Path:
@@ -37,13 +53,16 @@ def _try_lock_fd(fd: int) -> bool:
 
 
 def _unlock_fd(fd: int) -> None:
-    with contextlib.suppress(OSError):
+    try:
         if sys.platform == "win32":
             import msvcrt
+            os.lseek(fd, 0, os.SEEK_SET)   # 잠근 오프셋(0)과 맞춤 — PID 기록으로 이동한 위치 보정
             msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
         else:
             import fcntl
             fcntl.flock(fd, fcntl.LOCK_UN)
+    except OSError as ex:                  # 실패해도 이어지는 close()가 핸들 단위로 락을 해제
+        logger.debug("색인 락 해제 실패(무해, close가 대신 해제): %r", ex)
 
 
 class IndexLock:
@@ -57,15 +76,22 @@ class IndexLock:
         try:
             p.parent.mkdir(parents=True, exist_ok=True)
             fd = os.open(str(p), os.O_RDWR | os.O_CREAT, 0o644)
-        except OSError:
-            return False   # 락 파일조차 못 열면(권한 등) 색인은 진행(락 없이) — 안전 실패
+        except OSError as ex:
+            # 락 파일을 못 열면(권한·읽기전용·디스크풀 등) 락 없이 판정할 수 없다. 호출측은 acquire 실패를
+            # "다른 프로세스 색인 중"으로 해석해 건너뛰므로, 이 드문 실패가 조용히 묻히지 않게 반드시 로깅한다.
+            logger.warning("색인 락 파일 열기 실패(%s) — 색인 건너뜀으로 처리됨: %r", p, ex)
+            return False
         if not _try_lock_fd(fd):
             os.close(fd)
-            return False
+            return False                      # 정상 경합: 다른 (프로세스의) fd가 이미 쥠
         self._fd = fd
         with contextlib.suppress(OSError):   # 홀더 PID 기록(디버깅용, 락 자체는 fd가 담당)
             os.ftruncate(fd, 0)
             os.write(fd, str(os.getpid()).encode())
+            os.lseek(fd, 0, os.SEEK_SET)     # 잠근 오프셋(0)로 복귀 — release의 언락 오프셋 일치
+        global _held_count
+        with _held_lock:
+            _held_count += 1
         return True
 
     def release(self) -> None:
@@ -75,6 +101,9 @@ class IndexLock:
         with contextlib.suppress(OSError):
             os.close(self._fd)
         self._fd = None
+        global _held_count
+        with _held_lock:
+            _held_count = max(0, _held_count - 1)
 
     def __enter__(self) -> bool:
         return self.acquire()
