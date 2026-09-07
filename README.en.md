@@ -80,6 +80,8 @@ brew install --cask flyingjoojak/engram/engram
 
 Homebrew removes the quarantine flag for you, so there's no Gatekeeper warning, and `brew upgrade --cask engram` keeps it up to date.
 
+> The current dmg is an **Apple Silicon (arm64)** build. Intel Macs aren't supported yet.
+
 **Prefer the `.dmg`?** Download it from [Releases](https://github.com/flyingjoojak/engram/releases), drag **Engram** to Applications, then remove the quarantine flag (the app isn't code-signed yet):
 
 ```bash
@@ -213,9 +215,10 @@ Tools: `search_memory` · `get_session` · `recent_sessions` · `stats`.
 
 Pushing a tag (`vX.Y.Z`) makes GitHub Actions build the Windows/Linux/macOS installers and attach them to the release (with `latest.yml` for auto-update):
 
-1. Bump `version` in `electron/package.json`, summarize changes in `CHANGELOG.md`.
+1. Bump `version` in both `electron/package.json` and `Casks/engram.rb`, and summarize changes (with the date) in `CHANGELOG.md`. If you forget the cask version, later `brew install --cask` fetches the old dmg and 404s.
 2. `git tag v0.2.0 && git push origin v0.2.0`.
-3. **The release body shows in the app's update banner** - split it with `<!--lang:en-->` / `<!--lang:ko-->` markers and the banner shows the section matching the user's language.
+3. Once the release exists, **confirm the macOS `.dmg` is actually attached** - the mac build is unsigned and runs with `continue-on-error` in CI, so a silent failure still produces a green release (and then Homebrew 404s).
+4. **The release body shows in the app's update banner** - split it with `<!--lang:en-->` / `<!--lang:ko-->` markers and the banner shows the section matching the user's language.
 
 macOS: unsigned apps can't auto-update, so install/update via **Homebrew** (no Gatekeeper warning). Windows auto-updates from the banner even while unsigned.
 

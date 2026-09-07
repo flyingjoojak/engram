@@ -122,7 +122,7 @@ def test_resolve_missing_base_promotes_conflict(tmp_path):
 # ── resolve_all: 디렉터리 스캔 드라이버 ──────────────────────────────
 
 def test_resolve_all_scans_and_resolves(tmp_path):
-    proj = tmp_path / "C--Users-JHJOO"
+    proj = tmp_path / "C--Users-alice"
     proj.mkdir()
     _write(proj / "sess.jsonl", ["a", "b"])
     _write(proj / "sess.sync-conflict-20260101-120000-ABC123.jsonl", ["a", "b", "c"])
@@ -199,7 +199,7 @@ def test_session_activity_missing_file(tmp_path):
 
 
 def test_find_session_file_locates_across_subfolders(tmp_path):
-    proj = tmp_path / "C--Users-JHJOO"
+    proj = tmp_path / "C--Users-alice"
     proj.mkdir()
     target = _write(proj / "abc-123.jsonl", ["x"])
     assert find_session_file("abc-123", root=tmp_path) == target

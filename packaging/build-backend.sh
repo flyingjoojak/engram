@@ -2,7 +2,7 @@
 # engram 백엔드 사이드카 빌드 (Electron 데스크탑 앱에 동봉).
 #
 # FastAPI + fastembed(onnxruntime·tokenizers 네이티브)를 단일 폴더 exe로 번들한다.
-# 기본·권장 모델(int8 e5-large, 0.52GB)은 아래에서 생성해 동봉 → 설치 즉시 오프라인 동작.
+# 기본·권장 모델(int8 e5-large, 0.52GB 디스크 / 로딩 시 약 2GB RAM)은 아래에서 생성해 동봉 → 설치 즉시 오프라인 동작.
 #   (선택 옵션인 MiniLM 등 다른 모델만 첫 사용 시 다운로드/캐시)
 # 결과: dist/engram-backend/  (onedir; Electron이 이 폴더를 resources로 포함)
 #
@@ -21,7 +21,7 @@ fi
 SEP=":"
 case "${OS:-}${OSTYPE:-}" in *Windows*|*msys*|*cygwin*) SEP=";" ;; esac
 
-# 기본·권장 모델(int8 e5-large, 0.52GB)을 생성해 동봉 → 설치 즉시 오프라인 동작(첫 실행 다운로드 없음).
+# 기본·권장 모델(int8 e5-large, 0.52GB 디스크 / 로딩 시 약 2GB RAM)을 생성해 동봉 → 설치 즉시 오프라인 동작(첫 실행 다운로드 없음).
 if [ ! -f packaging/build/e5int8/model.onnx ]; then
   echo "int8 e5-large 생성 중…"; python packaging/make_int8.py packaging/build/e5int8
 fi
