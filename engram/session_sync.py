@@ -6,7 +6,7 @@ prefix(상위집합)다 → 긴 쪽을 채택(superset-wins)하면 무손실로 
 진짜 분기(어느쪽도 prefix 아님)만 새 세션 id 파일로 보존(fork)한다.
 
 이 모듈은 전송(Syncthing)과 무관한 **순수 로직 + 파일 적용**이라 단독 테스트 가능.
-설계 근거: SESSION_SYNC_SPEC.md §2(핵심 통찰), §5.3(충돌 해소).
+핵심: 충돌은 superset-wins/fork 로 자동 해소한다.
 """
 
 from __future__ import annotations
@@ -182,7 +182,7 @@ def watch(
 # 세션 jsonl의 mtime을 '마지막 활동 시각'으로 사용(Syncthing이 원본 mtime을 보존하므로
 # 다른 기기의 진행도 그 파일 mtime에 반영됨). 최근 window초 내 수정 = 어딘가에서
 # 진행 중일 수 있음 → 이중 재개 시 분기(fork) 위험 경고용. 별도 하트비트 파일 불필요.
-# Phase 1은 '경고만'(하드 차단 아님) — SESSION_SYNC_SPEC.md §5.2.
+# Phase 1은 '경고만'(하드 차단 아님).
 
 ACTIVE_WINDOW_SEC = 300.0   # 이 시간 내 수정이면 '활성 가능성'으로 간주(경고 임계값)
 
