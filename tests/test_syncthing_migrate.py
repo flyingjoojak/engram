@@ -72,6 +72,25 @@ def test_share_fail_keeps_legacy_folder():
     assert s.removed == []          # 옛 폴더 안 지움 → 상대(PEER_A) 보존
 
 
+def test_remove_device_reshares_without_it_and_deletes():
+    # 유령 페어링 해제: 폴더를 대상 제외하고 재공유 + device 등록 삭제.
+    class _F(_FakeST):
+        def __init__(self, folders):
+            super().__init__(folders)
+            self.reqs: list = []
+
+        def _req(self, method, path, body=None, timeout=8.0):
+            self.reqs.append((method, path))
+            return {}
+
+    folders = [{"id": st.DEFAULT_FOLDER_ID, "path": "/p",
+                "devices": [{"deviceID": "ME"}, {"deviceID": "PEER_A"}, {"deviceID": "GHOST"}]}]
+    f = _F(folders)
+    assert f.remove_device("GHOST", "/p") is True
+    assert set(f.shared_with) == {"PEER_A"}                      # GHOST 제외하고 재공유
+    assert ("DELETE", "/rest/config/devices/GHOST") in f.reqs    # 기기 등록 삭제
+
+
 def test_remove_fail_returns_false():
     # 이관은 됐지만 옛 폴더 삭제 실패 → False(다음 기동 재시도), 중복 폴더 잔존이 성공으로 위장되지 않게.
     folders = [

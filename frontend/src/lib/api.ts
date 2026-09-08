@@ -121,6 +121,16 @@ export async function syncthingPair(deviceId: string, name = ""): Promise<{ ok: 
   return r.json()
 }
 
+// 연결된 기기 해제(리셋 등으로 유령이 된 페어링 제거).
+export async function syncthingUnpair(deviceId: string): Promise<{ ok: boolean; error?: string; code?: string; detail?: string }> {
+  const r = await fetch(`/api/syncthing/unpair`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ device_id: deviceId }),
+  })
+  if (!r.ok) return failure(r)
+  return r.json()
+}
+
 // 자동 색인(프리즈 exe) 상태.
 export interface IndexPending { new_sessions: number; updated_sessions: number; files: number }
 export interface IndexStatus {

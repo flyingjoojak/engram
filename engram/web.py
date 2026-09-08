@@ -989,6 +989,24 @@ def api_syncthing_pair(payload: dict):
         return {"ok": False, "error": f"연결 실패: {e}", "code": "pair_failed", "detail": str(e)}
 
 
+@app.post("/api/syncthing/unpair")
+def api_syncthing_unpair(payload: dict):
+    """연결된 기기 해제. body: {device_id}. 리셋 등으로 유령이 된 페어링을 뗄 때 사용."""
+    from . import config as C
+    inst = _st.get("inst")
+    if not _st_state["running"] or inst is None:
+        return {"ok": False, "error": "먼저 '기기 연결'을 시작하세요", "code": "sync_not_started"}
+    did = str((payload or {}).get("device_id", "")).strip().upper().replace(" ", "")
+    if not _ST_DEVID_RE.fullmatch(did):
+        return {"ok": False, "error": "Device ID 형식이 올바르지 않아요", "code": "device_id_invalid"}
+    try:
+        if inst.remove_device(did, C.PROJECTS_DIR):
+            return {"ok": True}
+        return {"ok": False, "error": "기기 해제 실패 — 잠시 후 다시 시도", "code": "unpair_failed"}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": f"기기 해제 실패: {e}", "code": "unpair_failed", "detail": str(e)}
+
+
 @app.get("/api/config")
 def api_config():
     """현재 유효 설정(키 값은 존재 여부만). 설정 화면 표시용."""

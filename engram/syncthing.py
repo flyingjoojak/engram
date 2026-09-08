@@ -367,6 +367,32 @@ class Syncthing:
             logger.warning("syncthing 폴더 제거 실패(%s): %r", folder_id, ex)
             return False
 
+    def remove_device(self, device_id: str, projects_dir=None) -> bool:
+        """페어링 해제: 공유 폴더에서 그 기기를 빼고 기기 등록을 제거. 원본 파일은 안 건드림.
+
+        기기를 리셋해 Device ID가 바뀌면 옛 ID로의 페어링이 유령으로 남아 '전송 중 0%'에 갇힌다.
+        이 잔재를 떼는 용도. 성공 시 True.
+        """
+        # 1) 공유 폴더 device 목록에서 대상 제거(공유 중단). 실패해도 2)의 device 삭제는 시도.
+        if projects_dir is not None:
+            try:
+                cfg = self.config()
+                my = self.device_id()
+                folder = next((f for f in cfg.get("folders", []) if f.get("id") == DEFAULT_FOLDER_ID), None)
+                if folder:
+                    peers = [d.get("deviceID") for d in folder.get("devices", [])
+                             if d.get("deviceID") and d.get("deviceID") not in (my, device_id)]
+                    self.share_projects(projects_dir, peers)   # 대상 뺀 나머지로 재공유
+            except Exception as ex:  # noqa: BLE001
+                logger.warning("기기 해제: 폴더 공유 갱신 실패(%s): %r", device_id, ex)
+        # 2) 기기 등록 제거
+        try:
+            self._req("DELETE", f"/rest/config/devices/{device_id}")
+            return True
+        except Exception as ex:  # noqa: BLE001
+            logger.warning("기기 해제: device 삭제 실패(%s): %r", device_id, ex)
+            return False
+
     def migrate_legacy_folder(self, projects_dir) -> bool:
         """rename(chatmem→engram) 잔재 정리 — startup 자가복구.
 
