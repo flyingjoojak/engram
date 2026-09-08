@@ -907,6 +907,11 @@ def _st_start_bg(persist: bool = True) -> None:
             _st["inst"] = inst
             inst.start(log_fn=lambda m: _st_state.__setitem__("phase", m))
             if inst.wait_ready():
+                # rename(chatmem→engram) 잔재 폴더 정리 — 같은 경로 중복 폴더가 있으면 동기화가
+                # 0%에서 막히므로, REST 준비된 직후 새 폴더로 이관 후 옛 폴더 제거(자가복구·신규는 no-op).
+                from . import config as C
+                with contextlib.suppress(Exception):
+                    inst.migrate_legacy_folder(C.PROJECTS_DIR)
                 with _st_lock:
                     _st_state.update(running=True, starting=False, phase="실행 중", my_id=inst.device_id())
                 _sync_start(persist=False)   # 기기 연결이 켜지면 충돌 정리 워커도 자동 시작(별도 토글 없음)
