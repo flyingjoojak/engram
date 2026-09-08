@@ -31,6 +31,8 @@ from .proc import NO_WINDOW  # Windows 콘솔 창 깜빡임 방지
 SYNCTHING_VERSION = "v2.1.3"   # pin(재현성). 갱신 시 여기만 바꾸면 됨.
 # 공유 폴더 ID는 양쪽 기기가 같아야 연결됨 → 고정값 사용(우리가 관리하는 전용 폴더).
 DEFAULT_FOLDER_ID = "engram-claude-projects"
+# 이름 변경(chatmem→engram) 전 폴더 ID. 남아 있으면 startup에서 새 폴더로 이관 후 제거(자가복구).
+LEGACY_FOLDER_ID = "chatmem-claude-projects"
 VERSIONING_MAX_AGE_SEC = 31536000   # 삭제·덮어쓰기 이력 보관 기간(기본 1년). 조정 시 여기만.
 _BIN_DIR = C.DATA_DIR / "bin"
 _HOME_DIR = C.DATA_DIR / "syncthing-home"
@@ -352,6 +354,41 @@ class Syncthing:
             "versioning": {"type": "staggered", "params": {"maxAge": str(VERSIONING_MAX_AGE_SEC)}},
         }
         self._req("PUT", f"/rest/config/folders/{folder_id}", body)
+
+    def remove_folder(self, folder_id: str) -> None:
+        """공유 폴더 설정 하나 제거. 원본 파일(.claude/projects)은 건드리지 않는다."""
+        with contextlib.suppress(Exception):
+            self._req("DELETE", f"/rest/config/folders/{folder_id}")
+
+    def migrate_legacy_folder(self, projects_dir) -> bool:
+        """rename(chatmem→engram) 잔재 정리 — startup 자가복구.
+
+        옛 폴더 id(`chatmem-claude-projects`)가 남아 있으면, 그 폴더에 붙어 있던 상대 기기를
+        현재 폴더(`engram-claude-projects`)로 옮기고 옛 폴더를 제거한다. 두 폴더가 같은 경로
+        (.claude/projects)를 물면 Syncthing이 충돌로 한쪽을 에러 처리해 동기화가 0%에서 막히므로
+        필수. 홈·아카이브·스케줄러 레거시 정리와 동일한 back-compat 정책.
+        반환: 정리했으면 True.
+        """
+        try:
+            cfg = self.config()
+        except Exception:  # noqa: BLE001 — REST 실패 시 조용히 스킵(다음 기동에 재시도)
+            return False
+        folders = cfg.get("folders", [])
+        legacy = next((f for f in folders if f.get("id") == LEGACY_FOLDER_ID), None)
+        if legacy is None:
+            return False   # 잔재 없음 — 공개 신규 설치는 여기서 no-op
+        my = self.device_id()
+        # 옛 폴더 + 새 폴더에 붙어 있던 상대 기기(나 제외)를 합쳐 새 폴더로 이관(중복 제거).
+        peers: list[str] = []
+        for f in (legacy, next((x for x in folders if x.get("id") == DEFAULT_FOLDER_ID), None)):
+            for d in (f or {}).get("devices", []):
+                did = d.get("deviceID")
+                if did and did != my and did not in peers:
+                    peers.append(did)
+        with contextlib.suppress(Exception):
+            self.share_projects(projects_dir, peers)   # 새 폴더에 상대 병합(upsert)
+        self.remove_folder(LEGACY_FOLDER_ID)           # 옛 폴더 제거 → 같은 경로 중복 해소
+        return True
 
     def config(self) -> dict:
         return self._get("/rest/config")
