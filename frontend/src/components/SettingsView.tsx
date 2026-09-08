@@ -15,7 +15,7 @@ import {
 import {
   getConfig, getEmbedModels, getEnrichStatus, getIndexStatus, getMcp, getSkipSdkStats, getStats, getSyncStatus,
   archiveSync, getSyncthingStatus, getSystem, mcpRegister, mcpUnregister, putConfig, reindex, runEnrich, runIndex,
-  syncthingPair, syncthingStart, syncthingStop, toggleSource, verifyEnrich,
+  syncthingPair, syncthingStart, syncthingStop, syncthingUnpair, toggleSource, verifyEnrich,
   type Config, type EmbedModel, type EnrichStatus, type IndexStatus, type McpTarget, type SyncStatus,
   type SyncthingStatus, type SyncthingSync, type SystemInfo,
 } from "@/lib/api"
@@ -237,13 +237,16 @@ function AutoSyncSection() {
 function SyncthingSection() {
   const { t } = useTranslation()
   const [st, setSt] = useState<SyncthingStatus | null>(null)
+  const [stErr, setStErr] = useState(false)   // 상태 조회 실패 — 무한 '확인 중' 대신 에러+재시도 표시
   const [busy, setBusy] = useState(false)
   const [peer, setPeer] = useState("")
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [unpairing, setUnpairing] = useState<{ id: string; name: string } | null>(null)   // 해제 확인 대기 기기
+  const [unpairBusy, setUnpairBusy] = useState(false)
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const load = () => getSyncthingStatus().then(setSt).catch(() => setSt(null))
+  const load = () => getSyncthingStatus().then((d) => { setSt(d); setStErr(false) }).catch(() => setStErr(true))
   useEffect(() => {
     load()
     const id = setInterval(load, 3000)
@@ -274,8 +277,20 @@ function SyncthingSection() {
     } catch (e) { setNote({ ok: false, text: errText(t, e, "sync.pairFailed") }) }
     finally { setBusy(false) }
   }
+  async function doUnpair() {
+    if (!unpairing) return
+    setUnpairBusy(true); setNote(null)
+    try {
+      const r = await syncthingUnpair(unpairing.id)
+      if (r.ok) setNote({ ok: true, text: t("sync.unpairDone") })
+      else setNote({ ok: false, text: errText(t, r, "sync.unpairFailed") })
+      load()
+    } catch (e) { setNote({ ok: false, text: errText(t, e, "sync.unpairFailed") }) }
+    finally { setUnpairBusy(false); setUnpairing(null) }
+  }
 
-  const loading = st === null   // 첫 상태 응답 전 — '중지'로 오인해 '시작' 버튼이 깜빡이지 않게 구분
+  const loading = st === null && !stErr   // 첫 응답 전(로딩) vs 조회 실패(stErr)를 구분 — 무한 스피너 방지
+  const statusFailed = st === null && stErr
   const running = !!st?.running
   return (
     <>
@@ -284,19 +299,26 @@ function SyncthingSection() {
           {t("sync.deviceSync")}
           {loading
             ? <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{t("sync.checking")}</span>
-            : running
-              ? <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">{t("sync.running")}</span>
-              : <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{t("sync.stopped")}</span>}
+            : statusFailed
+              ? <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive">{t("sync.statusFailed")}</span>
+              : running
+                ? <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">{t("sync.running")}</span>
+                : <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{t("sync.stopped")}</span>}
         </span>
       }>
         {loading
           ? <Loader2 className="size-4 animate-spin text-muted-foreground" />
-          : running
-            ? <Button variant="outline" size="sm" disabled={busy} onClick={stop}>{t("sync.stop")}</Button>
-            : <Button size="sm" disabled={busy || starting} onClick={start}>
-                {busy || starting ? <Loader2 className="size-4 animate-spin" /> : t("sync.start")}
-              </Button>}
+          : statusFailed
+            ? <Button variant="outline" size="sm" onClick={load}>{t("common.retry")}</Button>
+            : running
+              ? <Button variant="outline" size="sm" disabled={busy} onClick={stop}>{t("sync.stop")}</Button>
+              : <Button size="sm" disabled={busy || starting} onClick={start}>
+                  {busy || starting ? <Loader2 className="size-4 animate-spin" /> : t("sync.start")}
+                </Button>}
       </Row>
+      {statusFailed && (
+        <div className="py-2 text-[11px] text-destructive">{t("sync.statusFailedHint")}</div>
+      )}
 
       {!loading && !running && (
         <div className="py-2 text-[11px] text-muted-foreground">
@@ -332,9 +354,13 @@ function SyncthingSection() {
               <div className="mb-1 text-[11px] font-medium text-muted-foreground">{t("sync.connectedDevices")}</div>
               {st.devices.map((d) => (
                 <div key={d.id} className="flex items-center gap-2 py-0.5 text-[11px]">
-                  <span className={`size-2 rounded-full ${d.connected ? "bg-primary" : "bg-muted-foreground/40"}`} />
+                  <span className={`size-2 shrink-0 rounded-full ${d.connected ? "bg-primary" : "bg-muted-foreground/40"}`} />
                   <span className="truncate font-mono">{d.name || d.id.slice(0, 7)}</span>
                   <span className="text-muted-foreground">{d.connected ? t("sync.connected") : t("sync.waiting")}</span>
+                  <button type="button" onClick={() => setUnpairing({ id: d.id, name: d.name || d.id.slice(0, 7) })}
+                    className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-destructive">
+                    {t("sync.unpair")}
+                  </button>
                 </div>
               ))}
             </div>
@@ -344,6 +370,21 @@ function SyncthingSection() {
           </div>
         </>
       )}
+
+      <AlertDialog open={!!unpairing} onOpenChange={(o) => !o && setUnpairing(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("sync.unpairConfirmTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              <Trans i18nKey="sync.unpairConfirmDesc" values={{ name: unpairing?.name ?? "" }} components={{ b: <b /> }} />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={unpairBusy}>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction disabled={unpairBusy} onClick={doUnpair}>{t("sync.unpair")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
