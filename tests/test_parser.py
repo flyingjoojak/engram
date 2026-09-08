@@ -162,6 +162,19 @@ def test_sdk_opt_in_env_includes_sdk(monkeypatch):
     assert is_real_user_prompt(_user_src("u1", "이거 고쳐줘", "typed"))
 
 
+def test_is_sdk_prompt_counts_sdk_regardless_of_setting(monkeypatch):
+    from engram.parser import is_sdk_prompt
+    # 집계용: skip 설정과 무관하게 sdk 여부만 판정
+    monkeypatch.delenv("ENGRAM_SKIP_SDK_SESSIONS", raising=False)
+    assert is_sdk_prompt(_user_src("u1", "run nightly", "sdk")) is True
+    assert is_sdk_prompt(_user_src("u1", "이거 고쳐줘", "typed")) is False
+    assert is_sdk_prompt(_user("u1", "질문")) is False          # promptSource 없음
+    # plumbing/비-사용자 프롬프트는 sdk여도 집계 제외(실제 턴이 아니므로)
+    tool = {"type": "user", "message": {"role": "user",
+            "content": [{"type": "tool_result", "content": "x"}]}, "promptSource": "sdk"}
+    assert is_sdk_prompt(tool) is False
+
+
 def test_sdk_explicit_on_excludes_sdk_only(monkeypatch):
     # 명시적으로 켜도(=1) sdk 만 제외. system 등은 promptSource 로 제외하지 않는다.
     monkeypatch.setenv("ENGRAM_SKIP_SDK_SESSIONS", "1")

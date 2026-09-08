@@ -13,7 +13,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
-  getConfig, getEmbedModels, getEnrichStatus, getIndexStatus, getMcp, getStats, getSyncStatus,
+  getConfig, getEmbedModels, getEnrichStatus, getIndexStatus, getMcp, getSkipSdkStats, getStats, getSyncStatus,
   archiveSync, getSyncthingStatus, getSystem, mcpRegister, mcpUnregister, putConfig, reindex, runEnrich, runIndex,
   syncthingPair, syncthingStart, syncthingStop, toggleSource, verifyEnrich,
   type Config, type EmbedModel, type EnrichStatus, type IndexStatus, type McpTarget, type SyncStatus,
@@ -462,6 +462,7 @@ export function SettingsView() {
   const [claudeBin, setClaudeBin] = useState("")   // claude CLI 경로 override(빈값=자동 탐색)
   const [skipSdk, setSkipSdk] = useState(true)     // 자동화(SDK/claude -p) 세션 제외 - 기본 켜짐
   const [skipSdkBusy, setSkipSdkBusy] = useState(false)
+  const [skipSdkStats, setSkipSdkStats] = useState<{ sessions: number; turns: number } | null>(null)  // 제외 대상 규모(표기용)
   const [saved, setSaved] = useState(false)
   const [testing, setTesting] = useState(false)
   const [verify, setVerify] = useState<{ ok: boolean; msg: string } | null>(null)
@@ -547,7 +548,7 @@ export function SettingsView() {
     }
   }
 
-  // 자동화(SDK/claude -p) 세션 제외 토글. 다음 색인부터 반영(기존 데이터는 전체 재색인 시 정리).
+  // 자동화(SDK/claude -p) 세션 제외 토글. 다음 색인부터 반영(이미 색인된 데이터엔 소급 안 됨 - 데이터 폴더 초기화 후 재색인해야 제거).
   async function toggleSkipSdk(next: boolean) {
     if (skipSdkBusy) return
     setSkipSdkBusy(true); setSkipSdk(next)
@@ -563,6 +564,7 @@ export function SettingsView() {
 
   useEffect(() => {
     getStats().then(setStats).catch(() => {})
+    getSkipSdkStats().then((s) => setSkipSdkStats({ sessions: s.sessions, turns: s.turns })).catch(() => {})
     getConfig().then((c) => {
       setCfg(c); setBackend(c.enrich_backend); setEnrichTime(c.enrich_time)
       setIntervalMin(c.index_interval); setOllamaUrl(c.ollama_url); setProjectsDir(c.projects_dir); setCodexDir(c.codex_dir)
@@ -812,6 +814,9 @@ export function SettingsView() {
                       <AlertTriangle className="size-3.5 shrink-0" />{t("settings.allSourcesOff")}
                     </div>
                   )}
+                  <p className="text-xs text-muted-foreground">
+                    <Trans i18nKey="settings.sourcesNote" components={{ b: <b /> }} />
+                  </p>
                   <div className="mt-1 flex flex-wrap items-center gap-2 border-t pt-2.5 text-sm">
                     <span className="font-medium">{t("settings.skipSdk")}</span>
                     <button type="button" role="switch" aria-checked={skipSdk} disabled={skipSdkBusy}
@@ -822,9 +827,11 @@ export function SettingsView() {
                     </button>
                   </div>
                   <p id="skip-sdk-help" className="text-[11px] text-muted-foreground">{t("settings.skipSdkHelp")}</p>
-                  <p className="text-xs text-muted-foreground">
-                    <Trans i18nKey="settings.sourcesNote" components={{ b: <b /> }} />
-                  </p>
+                  {skipSdkStats && skipSdkStats.turns > 0 && (
+                    <p className="text-[11px] text-muted-foreground tabular-nums">
+                      {t(skipSdk ? "settings.skipSdkCountOn" : "settings.skipSdkCountOff", { sessions: skipSdkStats.sessions.toLocaleString(), turns: skipSdkStats.turns.toLocaleString() })}
+                    </p>
+                  )}
                 </div>
               </Section>
 

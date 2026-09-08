@@ -1032,6 +1032,13 @@ def api_config():
     }
 
 
+@app.get("/api/skip-sdk-stats")
+def api_skip_sdk_stats():
+    """자동화(sdk) 제외 대상 규모(세션/턴) + 현재 제외 설정. 설정 화면이 필요 시 1회 조회(폴링 아님)."""
+    from .parser import skip_sdk_enabled
+    return {**_skip_sdk_stats(), "enabled": skip_sdk_enabled()}
+
+
 @app.put("/api/config")
 def api_config_put(payload: dict):
     """설정 저장: config.env 갱신 + 실행 중 프로세스 반영 + 필요 시 스케줄러 재등록.
@@ -1159,6 +1166,38 @@ def _jsonl_count_cached() -> int:
         return _jsonl_cache["n"]
     _jsonl_cache.update(at=now, n=n)
     return n
+
+
+# 자동화(sdk) 제외 규모 캐시 — 원문 전체를 읽어 세는 비용이라 TTL 캐시 + 설정 화면 조회 시에만.
+_skip_sdk_cache: dict = {"at": 0.0, "sessions": 0, "turns": 0}
+_SKIP_SDK_TTL = 60.0
+
+
+def _skip_sdk_stats() -> dict:
+    """자동화(sdk) 프롬프트가 원문 로그에 몇 개(세션/턴) 있는지 — 제외 개수 표기용. 60s 캐시.
+    파일=세션 단위(claude-code/codex 모두 파일 하나가 한 세션)."""
+    now = time.time()
+    if now - _skip_sdk_cache["at"] < _SKIP_SDK_TTL:
+        return {"sessions": _skip_sdk_cache["sessions"], "turns": _skip_sdk_cache["turns"]}
+    from .indexer import discover_files
+    from .parser import is_sdk_prompt
+    sessions = turns = 0
+    try:
+        for f, adapter in discover_files(recent_first=False):
+            hit = False
+            try:
+                for obj, _end in adapter.read_records(f, 0):
+                    if is_sdk_prompt(obj):
+                        turns += 1
+                        hit = True
+            except Exception:  # noqa: BLE001 — 한 파일 오류가 집계를 막지 않게
+                continue
+            if hit:
+                sessions += 1
+    except Exception:  # noqa: BLE001 — 집계 실패는 이전 값 유지
+        return {"sessions": _skip_sdk_cache["sessions"], "turns": _skip_sdk_cache["turns"]}
+    _skip_sdk_cache.update(at=now, sessions=sessions, turns=turns)
+    return {"sessions": sessions, "turns": turns}
 
 
 # 색인 소스 현황 캐시 — /api/config 폴링 대비(소스별 파일 walk를 매번 안 하게).
