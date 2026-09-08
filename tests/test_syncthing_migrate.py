@@ -23,11 +23,19 @@ class _FakeST(st.Syncthing):
     def config(self):
         return self._cfg
 
+    share_fails = False
+    remove_ok = True
+
     def share_projects(self, projects_dir, remote_ids, folder_id=st.DEFAULT_FOLDER_ID, label="Claude projects"):
+        if self.share_fails:
+            raise RuntimeError("REST timeout")   # 이관 실패 재현
         self.shared_with = list(remote_ids)
 
     def remove_folder(self, folder_id):
+        if not self.remove_ok:
+            return False   # 삭제 실패 재현
         self.removed.append(folder_id)
+        return True
 
 
 def test_migrates_legacy_folder_and_merges_peers():
@@ -50,3 +58,27 @@ def test_no_legacy_folder_is_noop():
     assert s.migrate_legacy_folder("/p") is False   # 신규 설치 = 잔재 없음
     assert s.removed == []
     assert s.shared_with is None
+
+
+def test_share_fail_keeps_legacy_folder():
+    # 상대 병합 실패 시 옛 폴더를 지우면 페어링 유실 → 병합 실패면 옛 폴더 보존(다음 기동 재시도).
+    folders = [
+        {"id": st.LEGACY_FOLDER_ID, "path": "/p", "devices": [{"deviceID": "ME"}, {"deviceID": "PEER_A"}]},
+        {"id": st.DEFAULT_FOLDER_ID, "path": "/p", "devices": [{"deviceID": "ME"}]},
+    ]
+    s = _FakeST(folders)
+    s.share_fails = True
+    assert s.migrate_legacy_folder("/p") is False
+    assert s.removed == []          # 옛 폴더 안 지움 → 상대(PEER_A) 보존
+
+
+def test_remove_fail_returns_false():
+    # 이관은 됐지만 옛 폴더 삭제 실패 → False(다음 기동 재시도), 중복 폴더 잔존이 성공으로 위장되지 않게.
+    folders = [
+        {"id": st.LEGACY_FOLDER_ID, "path": "/p", "devices": [{"deviceID": "ME"}, {"deviceID": "PEER_A"}]},
+        {"id": st.DEFAULT_FOLDER_ID, "path": "/p", "devices": [{"deviceID": "ME"}]},
+    ]
+    s = _FakeST(folders)
+    s.remove_ok = False
+    assert s.migrate_legacy_folder("/p") is False
+    assert set(s.shared_with) == {"PEER_A"}   # 이관은 시도됨

@@ -11,6 +11,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
+import logging
 import os
 import platform
 import secrets
@@ -33,6 +34,8 @@ SYNCTHING_VERSION = "v2.1.3"   # pin(재현성). 갱신 시 여기만 바꾸면 
 DEFAULT_FOLDER_ID = "engram-claude-projects"
 # 이름 변경(chatmem→engram) 전 폴더 ID. 남아 있으면 startup에서 새 폴더로 이관 후 제거(자가복구).
 LEGACY_FOLDER_ID = "chatmem-claude-projects"
+
+logger = logging.getLogger(__name__)
 VERSIONING_MAX_AGE_SEC = 31536000   # 삭제·덮어쓰기 이력 보관 기간(기본 1년). 조정 시 여기만.
 _BIN_DIR = C.DATA_DIR / "bin"
 _HOME_DIR = C.DATA_DIR / "syncthing-home"
@@ -355,10 +358,14 @@ class Syncthing:
         }
         self._req("PUT", f"/rest/config/folders/{folder_id}", body)
 
-    def remove_folder(self, folder_id: str) -> None:
-        """공유 폴더 설정 하나 제거. 원본 파일(.claude/projects)은 건드리지 않는다."""
-        with contextlib.suppress(Exception):
+    def remove_folder(self, folder_id: str) -> bool:
+        """공유 폴더 설정 하나 제거. 원본 파일(.claude/projects)은 건드리지 않는다. 성공 시 True."""
+        try:
             self._req("DELETE", f"/rest/config/folders/{folder_id}")
+            return True
+        except Exception as ex:  # noqa: BLE001
+            logger.warning("syncthing 폴더 제거 실패(%s): %r", folder_id, ex)
+            return False
 
     def migrate_legacy_folder(self, projects_dir) -> bool:
         """rename(chatmem→engram) 잔재 정리 — startup 자가복구.
@@ -367,11 +374,15 @@ class Syncthing:
         현재 폴더(`engram-claude-projects`)로 옮기고 옛 폴더를 제거한다. 두 폴더가 같은 경로
         (.claude/projects)를 물면 Syncthing이 충돌로 한쪽을 에러 처리해 동기화가 0%에서 막히므로
         필수. 홈·아카이브·스케줄러 레거시 정리와 동일한 back-compat 정책.
-        반환: 정리했으면 True.
+
+        안전: 상대 기기를 새 폴더로 **옮기는 데 성공했을 때만** 옛 폴더를 지운다. 이관이 실패하면
+        옛 폴더를 남겨 다음 기동에 재시도한다(병합 안 된 채 삭제해 페어링을 유실하지 않게).
+        반환: 이관+제거까지 끝냈으면 True, 잔재 없음/실패면 False.
         """
         try:
             cfg = self.config()
-        except Exception:  # noqa: BLE001 — REST 실패 시 조용히 스킵(다음 기동에 재시도)
+        except Exception as ex:  # noqa: BLE001 — REST 미준비 등: 다음 기동에 재시도
+            logger.warning("syncthing 레거시 폴더 정리: 설정 조회 실패, 다음 기동 재시도: %r", ex)
             return False
         folders = cfg.get("folders", [])
         legacy = next((f for f in folders if f.get("id") == LEGACY_FOLDER_ID), None)
@@ -385,9 +396,14 @@ class Syncthing:
                 did = d.get("deviceID")
                 if did and did != my and did not in peers:
                     peers.append(did)
-        with contextlib.suppress(Exception):
+        try:
             self.share_projects(projects_dir, peers)   # 새 폴더에 상대 병합(upsert)
-        self.remove_folder(LEGACY_FOLDER_ID)           # 옛 폴더 제거 → 같은 경로 중복 해소
+        except Exception as ex:  # noqa: BLE001 — 이관 실패: 옛 폴더 보존 → 다음 기동 재시도
+            logger.warning("syncthing 레거시 폴더 정리: 상대 기기 이관 실패, 옛 폴더 보존(재시도): %r", ex)
+            return False
+        if not self.remove_folder(LEGACY_FOLDER_ID):   # 이관 성공 후에만 옛 폴더 제거
+            return False                                # 삭제 실패: 옛 폴더 남음 → 다음 기동 재시도(로깅은 remove_folder)
+        logger.info("syncthing 레거시 폴더(%s) 정리 완료 — 상대 %d대 이관", LEGACY_FOLDER_ID, len(peers))
         return True
 
     def config(self) -> dict:
