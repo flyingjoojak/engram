@@ -71,24 +71,31 @@
 1. `Engram-Setup-<버전>.exe` 를 받아 실행합니다.
 2. "Windows의 PC 보호" 경고가 뜨면 **추가 정보 → 실행**. (아직 코드 서명을 안 해서 뜨는 경고일 뿐이며 안전합니다.)
 
-### 🍎 macOS - Homebrew 권장
+### 🍎 macOS (Apple Silicon)
+
+> v0.1.0은 아직 코드 서명이 안 돼 있어, **설치 후 아래 서명 명령을 한 번 실행**해야 앱이 열립니다. 서명이 없으면 Apple Silicon이 "손상됨"으로 막기 때문이에요. 다음 버전에서 앱에 서명이 들어가면 이 단계는 없어집니다.
+
+**1) 설치 - Homebrew (권장)**
 
 ```bash
 brew tap flyingjoojak/engram
 brew install --cask engram
 ```
 
-Homebrew가 격리(quarantine)를 대신 풀어줘서 Gatekeeper 경고 없이 설치되고, `brew upgrade --cask engram` 으로 자동 업데이트됩니다.
+서드파티 tap이라 "untrusted tap" 경고가 뜨면 `brew trust flyingjoojak/engram` 실행 후 다시 설치하세요. 업데이트는 `brew upgrade --cask engram`.
 
-> 현재 dmg는 **Apple Silicon(arm64)** 빌드입니다. Intel Mac은 아직 지원하지 않습니다.
+**또는 `.dmg` 직접**: [Releases](https://github.com/flyingjoojak/engram/releases)에서 받아 **Engram** 을 Applications 로 드래그.
 
-**`.dmg` 로 직접 설치하려면?** [Releases](https://github.com/flyingjoojak/engram/releases)에서 받아 **Engram** 을 Applications 로 드래그한 뒤, 서명이 없어 격리를 풀어줘야 합니다:
+**2) 설치 후 - 서명 대체(필수)**
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/Engram.app
+xattr -cr /Applications/Engram.app
+codesign --force --deep --sign - /Applications/Engram.app
 ```
 
-그다음 평소처럼 실행. (또는 앱 우클릭 → **열기** 를 처음 한 번.)
+그다음 앱을 여세요. (로컬에서 ad-hoc 서명을 붙이는 것뿐이라 안전합니다.)
+
+> Intel Mac은 아직 지원하지 않습니다(arm64 빌드).
 
 ### 🐧 Linux - 아직 테스트 안 됨
 
