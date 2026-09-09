@@ -71,24 +71,31 @@ Builds land on the [**Releases**](https://github.com/flyingjoojak/engram/release
 1. Download `Engram-Setup-<version>.exe` and run it.
 2. If Windows shows a "protected your PC" warning, click **More info → Run anyway**. (It's just because the app isn't code-signed yet - it's safe.)
 
-### 🍎 macOS - Homebrew recommended
+### 🍎 macOS (Apple Silicon)
+
+> v0.1.0 isn't code-signed yet, so **after installing, run the signing command below once** to make the app open. Without a signature, Apple Silicon blocks it as "damaged". Once the app ships signed in a later version, this step goes away.
+
+**1) Install - Homebrew (recommended)**
 
 ```bash
 brew tap flyingjoojak/engram
 brew install --cask engram
 ```
 
-Homebrew removes the quarantine flag for you, so there's no Gatekeeper warning, and `brew upgrade --cask engram` keeps it up to date.
+It's a third-party tap, so if you see an "untrusted tap" warning, run `brew trust flyingjoojak/engram` and install again. Update with `brew upgrade --cask engram`.
 
-> The current dmg is an **Apple Silicon (arm64)** build. Intel Macs aren't supported yet.
+**Or the `.dmg` directly**: download from [Releases](https://github.com/flyingjoojak/engram/releases) and drag **Engram** to Applications.
 
-**Prefer the `.dmg`?** Download it from [Releases](https://github.com/flyingjoojak/engram/releases), drag **Engram** to Applications, then remove the quarantine flag (the app isn't code-signed yet):
+**2) After installing - sign it locally (required)**
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/Engram.app
+xattr -cr /Applications/Engram.app
+codesign --force --deep --sign - /Applications/Engram.app
 ```
 
-Then open it normally. (Or right-click the app → **Open** the first time.)
+Then open the app. (This just adds a local ad-hoc signature - it's safe.)
+
+> Intel Macs aren't supported yet (arm64 build).
 
 ### 🐧 Linux - not tested yet
 
