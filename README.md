@@ -74,8 +74,8 @@
 ### 🍎 macOS - Homebrew 권장
 
 ```bash
-brew tap flyingjoojak/engram https://github.com/flyingjoojak/engram
-brew install --cask flyingjoojak/engram/engram
+brew tap flyingjoojak/engram
+brew install --cask engram
 ```
 
 Homebrew가 격리(quarantine)를 대신 풀어줘서 Gatekeeper 경고 없이 설치되고, `brew upgrade --cask engram` 으로 자동 업데이트됩니다.
@@ -213,7 +213,7 @@ claude mcp add engram -- engram-mcp
 
 태그(`vX.Y.Z`)를 push하면 GitHub Actions가 Windows/Linux/macOS 설치본을 빌드해 릴리스에 첨부합니다(자동 업데이트용 `latest.yml` 포함):
 
-1. `electron/package.json`의 `version`, `Casks/engram.rb`의 `version`을 함께 올리고 `CHANGELOG.md`에 변경 정리(날짜 포함). 카스크 버전을 빠뜨리면 이후 `brew install --cask`가 옛 dmg를 받아 404가 납니다.
+1. `electron/package.json`의 `version`과 **[homebrew-engram](https://github.com/flyingjoojak/homebrew-engram) tap 저장소의 `Casks/engram.rb` `version`**을 함께 올리고, `CHANGELOG.md`에 변경 정리(날짜 포함). 카스크 버전을 빠뜨리면 이후 `brew install --cask`가 옛 dmg를 받아 404가 납니다. (cask는 tap 저장소에 있습니다 - 이 저장소가 아님)
 2. `git tag v0.2.0 && git push origin v0.2.0`.
 3. 릴리스가 만들어지면 **macOS `.dmg`가 실제로 첨부됐는지 확인**하세요 - mac 빌드는 미서명이라 CI에서 비차단(`continue-on-error`)이어서, 조용히 실패해도 릴리스는 green으로 생성됩니다(그러면 Homebrew가 404).
 4. **릴리스 본문이 앱 업데이트 배너에 표시**됩니다 - `<!--lang:en-->` / `<!--lang:ko-->` 마커로 나누면 배너가 사용자 언어 섹션만 보여줍니다.

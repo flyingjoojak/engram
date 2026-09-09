@@ -74,8 +74,8 @@ Builds land on the [**Releases**](https://github.com/flyingjoojak/engram/release
 ### 🍎 macOS - Homebrew recommended
 
 ```bash
-brew tap flyingjoojak/engram https://github.com/flyingjoojak/engram
-brew install --cask flyingjoojak/engram/engram
+brew tap flyingjoojak/engram
+brew install --cask engram
 ```
 
 Homebrew removes the quarantine flag for you, so there's no Gatekeeper warning, and `brew upgrade --cask engram` keeps it up to date.
@@ -215,7 +215,7 @@ Tools: `search_memory` · `get_session` · `recent_sessions` · `stats`.
 
 Pushing a tag (`vX.Y.Z`) makes GitHub Actions build the Windows/Linux/macOS installers and attach them to the release (with `latest.yml` for auto-update):
 
-1. Bump `version` in both `electron/package.json` and `Casks/engram.rb`, and summarize changes (with the date) in `CHANGELOG.md`. If you forget the cask version, later `brew install --cask` fetches the old dmg and 404s.
+1. Bump `version` in `electron/package.json` **and in the `Casks/engram.rb` of the [homebrew-engram](https://github.com/flyingjoojak/homebrew-engram) tap repo**, and summarize changes (with the date) in `CHANGELOG.md`. If you forget the cask version, later `brew install --cask` fetches the old dmg and 404s. (The cask lives in the tap repo, not this one.)
 2. `git tag v0.2.0 && git push origin v0.2.0`.
 3. Once the release exists, **confirm the macOS `.dmg` is actually attached** - the mac build is unsigned and runs with `continue-on-error` in CI, so a silent failure still produces a green release (and then Homebrew 404s).
 4. **The release body shows in the app's update banner** - split it with `<!--lang:en-->` / `<!--lang:ko-->` markers and the banner shows the section matching the user's language.
