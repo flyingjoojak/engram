@@ -10,9 +10,9 @@ Codex rollout JSONL 특징(실측 기반):
 """
 from pathlib import Path
 
-from engram.models import Turn
-from engram.sources import ADAPTERS, SourceAdapter
-from engram.sources.codex import CodexAdapter
+from vestige.models import Turn
+from vestige.sources import ADAPTERS, SourceAdapter
+from vestige.sources.codex import CodexAdapter
 
 SID = "019e80dc-1754-7422-b72f-2d176635efb2"
 
@@ -126,8 +126,8 @@ def test_discover_finds_rollout_and_skips_backups(tmp_path: Path):
     _write_rollout(tmp_path, _LINES_OLD)
     (tmp_path / ".stversions").mkdir()
     (tmp_path / ".stversions" / "rollout-old-x.jsonl").write_text("{}\n", encoding="utf-8")
-    (tmp_path / ".engram-archive").mkdir()
-    (tmp_path / ".engram-archive" / "rollout-arch-y.jsonl").write_text("{}\n", encoding="utf-8")
+    (tmp_path / ".vestige-archive").mkdir()
+    (tmp_path / ".vestige-archive" / "rollout-arch-y.jsonl").write_text("{}\n", encoding="utf-8")
     # 레거시 아카이브 폴더도 계속 제외돼야 함(back-compat)
     (tmp_path / ".chatmem-archive").mkdir()
     (tmp_path / ".chatmem-archive" / "rollout-arch-z.jsonl").write_text("{}\n", encoding="utf-8")

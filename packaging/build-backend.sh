@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# engram 백엔드 사이드카 빌드 (Electron 데스크탑 앱에 동봉).
+# vestige 백엔드 사이드카 빌드 (Electron 데스크탑 앱에 동봉).
 #
 # FastAPI + fastembed(onnxruntime·tokenizers 네이티브)를 단일 폴더 exe로 번들한다.
 # 기본·권장 모델(int8 e5-large, 0.52GB 디스크 / 로딩 시 약 2GB RAM)은 아래에서 생성해 동봉 → 설치 즉시 오프라인 동작.
 #   (선택 옵션인 MiniLM 등 다른 모델만 첫 사용 시 다운로드/캐시)
-# 결과: dist/engram-backend/  (onedir; Electron이 이 폴더를 resources로 포함)
+# 결과: dist/vestige-backend/  (onedir; Electron이 이 폴더를 resources로 포함)
 #
 # 사전: pip install ".[all]" pyinstaller onnx
 #   ("onnx"는 아래 make_int8(양자화)에만 필요. 이미 생성된 e5int8 폴더가 있으면 불필요)
@@ -26,7 +26,7 @@ if [ ! -f packaging/build/e5int8/model.onnx ]; then
   echo "int8 e5-large 생성 중…"; python packaging/make_int8.py packaging/build/e5int8
 fi
 
-pyinstaller --noconfirm --onedir --name engram-backend \
+pyinstaller --noconfirm --onedir --name vestige-backend \
   --noconsole \
   --paths . \
   --add-data "packaging/build/e5int8${SEP}e5int8" \
@@ -38,9 +38,9 @@ pyinstaller --noconfirm --onedir --name engram-backend \
   --collect-all sqlite_vec \
   --collect-submodules mcp.server \
   --collect-submodules mcp.shared \
-  --collect-submodules engram \
+  --collect-submodules vestige \
   --add-data "frontend/dist${SEP}frontend/dist" \
   packaging/backend_entry.py
 
 echo ""
-echo "완료: dist/engram-backend/engram-backend.exe  (인자=포트, 예: engram-backend.exe 8765)"
+echo "완료: dist/vestige-backend/vestige-backend.exe  (인자=포트, 예: vestige-backend.exe 8765)"

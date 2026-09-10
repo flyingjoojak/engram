@@ -77,7 +77,7 @@ def toggleable_source_names() -> list[str]:
 
 
 def enabled_source_names() -> list[str]:
-    """색인 대상 소스명. ENGRAM_SOURCES(쉼표)로 한정하거나 비면 전부에서, UI로 끈 소스를 제외.
+    """색인 대상 소스명. VESTIGE_SOURCES(쉼표)로 한정하거나 비면 전부에서, UI로 끈 소스를 제외.
 
     하위 스트림(subagent)은 자기 이름이 아니라 부모 출처(claude-code)의 disabled 여부만 따른다.
     중복 제거·순서 유지, env의 미등록 이름은 경고.
@@ -87,7 +87,7 @@ def enabled_source_names() -> list[str]:
         wanted = [s.strip() for s in C.SOURCES_ENV.split(",") if s.strip()]
         unknown = [s for s in wanted if s not in ADAPTERS]
         if unknown:
-            logger.warning("ENGRAM_SOURCES에 알 수 없는 소스 %s 무시(사용 가능: %s)",
+            logger.warning("VESTIGE_SOURCES에 알 수 없는 소스 %s 무시(사용 가능: %s)",
                            unknown, list(ADAPTERS.keys()))
         base = list(dict.fromkeys(s for s in wanted if s in ADAPTERS))
     else:

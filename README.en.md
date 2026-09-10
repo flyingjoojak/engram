@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/banner.png" alt="Engram" width="100%">
+<img src="docs/assets/banner.png" alt="Vestige" width="100%">
 
 ### Your AI coding assistant forgets everything. Now you don't have to.
 
@@ -17,11 +17,11 @@ You've solved hundreds of problems with **Claude Code** and **Codex** - that gna
 Docker config, the prompt that finally worked. Then the session closes and it's gone. Next time you
 need it, you scroll through endless history, or just ask again from scratch.
 
-**Engram is the long-term memory your AI assistant doesn't have.** It keeps every conversation
+**Vestige is the long-term memory your AI assistant doesn't have.** It keeps every conversation
 on your own machine, in the background, and lets you find any of them in a second - by meaning, not just keywords.
 
 <div align="center">
-  <img src="docs/assets/search.png" alt="Searching past conversations in Engram - type what you remember and the exact answer comes back" width="880">
+  <img src="docs/assets/search.png" alt="Searching past conversations in Vestige - type what you remember and the exact answer comes back" width="880">
 </div>
 
 <!-- Want a playable demo video too? Drag an .mp4 into a GitHub issue/release, then paste the
@@ -29,7 +29,7 @@ on your own machine, in the background, and lets you find any of them in a secon
 
 ## What changes for you
 
-| Before Engram | With Engram |
+| Before Vestige | With Vestige |
 |---|---|
 | You know you fixed this before, but that chat is gone. | You **find the exact conversation in seconds.** |
 | You re-ask Claude the same question and burn tokens. | You **reuse the answer you already got.** |
@@ -51,24 +51,24 @@ on your own machine, in the background, and lets you find any of them in a secon
 **A 3D map of everything you've discussed** - your history clustered into topics you can fly through.
 
 <div align="center">
-  <img src="docs/assets/map.gif" alt="Engram's rotating 3D semantic map, with conversations clustered into labeled topics" width="880">
+  <img src="docs/assets/map.gif" alt="Vestige's rotating 3D semantic map, with conversations clustered into labeled topics" width="880">
 </div>
 
 **Every session, one click away** - grouped, timestamped, and searchable.
 
 <div align="center">
-  <img src="docs/assets/sessions.png" alt="Engram's session browser listing past conversations" width="880">
+  <img src="docs/assets/sessions.png" alt="Vestige's session browser listing past conversations" width="880">
 </div>
 
 ## Download
 
-> **Platform status:** **Windows** and **macOS** are built and tested on real hardware. **Linux** builds are produced automatically but **haven't been tested on real hardware yet**, so it may not work smoothly. If something breaks, please [open an issue](https://github.com/flyingjoojak/engram/issues) and I'll fix it.
+> **Platform status:** **Windows** and **macOS** are built and tested on real hardware. **Linux** builds are produced automatically but **haven't been tested on real hardware yet**, so it may not work smoothly. If something breaks, please [open an issue](https://github.com/flyingjoojak/vestige/issues) and I'll fix it.
 
-Builds land on the [**Releases**](https://github.com/flyingjoojak/engram/releases) page.
+Builds land on the [**Releases**](https://github.com/flyingjoojak/vestige/releases) page.
 
 ### 🪟 Windows - verified
 
-1. Download `Engram-Setup-<version>.exe` and run it.
+1. Download `Vestige-Setup-<version>.exe` and run it.
 2. If Windows shows a "protected your PC" warning, click **More info → Run anyway**. (It's just because the app isn't code-signed yet - it's safe.)
 
 ### 🍎 macOS (Apple Silicon)
@@ -78,19 +78,19 @@ Builds land on the [**Releases**](https://github.com/flyingjoojak/engram/release
 **1) Install - Homebrew (recommended)**
 
 ```bash
-brew tap flyingjoojak/engram
-brew install --cask engram
+brew tap flyingjoojak/vestige
+brew install --cask vestige
 ```
 
-It's a third-party tap, so if you see an "untrusted tap" warning, run `brew trust flyingjoojak/engram` and install again. Update with `brew upgrade --cask engram`.
+It's a third-party tap, so if you see an "untrusted tap" warning, run `brew trust flyingjoojak/vestige` and install again. Update with `brew upgrade --cask vestige`.
 
-**Or the `.dmg` directly**: download from [Releases](https://github.com/flyingjoojak/engram/releases) and drag **Engram** to Applications.
+**Or the `.dmg` directly**: download from [Releases](https://github.com/flyingjoojak/vestige/releases) and drag **Vestige** to Applications.
 
 **2) After installing - sign it locally (required)**
 
 ```bash
-xattr -cr /Applications/Engram.app
-codesign --force --deep --sign - /Applications/Engram.app
+xattr -cr /Applications/Vestige.app
+codesign --force --deep --sign - /Applications/Vestige.app
 ```
 
 Then open the app. (This just adds a local ad-hoc signature - it's safe.)
@@ -101,11 +101,11 @@ Then open the app. (This just adds a local ad-hoc signature - it's safe.)
 
 Download the `.AppImage`, make it executable with `chmod +x`, and run it.
 
-**First launch:** pick an embedding model (a lightweight option is offered for slower machines) and you're set. Engram then indexes your conversations in the background; use the left rail for **Search · Sessions · 3D map · Settings**.
+**First launch:** pick an embedding model (a lightweight option is offered for slower machines) and you're set. Vestige then indexes your conversations in the background; use the left rail for **Search · Sessions · 3D map · Settings**.
 
 ## How it works
 
-Engram watches the logs Claude Code and Codex **already write on your machine**, so there's nothing to set up.
+Vestige watches the logs Claude Code and Codex **already write on your machine**, so there's nothing to set up.
 
 ```
 Claude Code / Codex logs  →  read incrementally  →  conversations (question + answer + actions)
@@ -116,7 +116,7 @@ Claude Code / Codex logs  →  read incrementally  →  conversations (question 
 Your human conversations with Claude Code and Codex get indexed. One-shot SDK sessions from `claude -p`
 automation (CI, cron, git hooks) are **excluded by default** - once something is indexed it's hard to remove
 today, so the default errs on the side of not keeping throwaway runs. If you actually work through the SDK and
-want those conversations kept, turn it off with `ENGRAM_SKIP_SDK_SESSIONS=0`.
+want those conversations kept, turn it off with `VESTIGE_SKIP_SDK_SESSIONS=0`.
 
 Your **raw conversations are the source of truth**; the search index is just a regenerable derivative, so
 re-indexing or switching models is always lossless.
@@ -143,30 +143,30 @@ No telemetry, no usage stats, no automatic error reports. The “report an issue
 
 <br>
 
-Engram is built on a Python core with a thin CLI. Install from source:
+Vestige is built on a Python core with a thin CLI. Install from source:
 
 ```bash
-git clone https://github.com/flyingjoojak/engram.git && cd engram
+git clone https://github.com/flyingjoojak/vestige.git && cd vestige
 pip install ".[web]"          # core + web UI.  Everything: ".[all]"  ·  dev: pip install -e ".[all]"
-engram setup                 # folders, config, and a scheduler that auto-indexes every 10 min
+vestige setup                 # folders, config, and a scheduler that auto-indexes every 10 min
 ```
 
 Or with [pipx](https://pipx.pypa.io):
 
 ```bash
-pipx install "engram[web] @ git+https://github.com/flyingjoojak/engram.git"
-engram setup
+pipx install "vestige[web] @ git+https://github.com/flyingjoojak/vestige.git"
+vestige setup
 ```
 
 ```bash
 mem "how did I write the payroll calc logic"   # search from the terminal
-engram web                            # web UI → http://127.0.0.1:8642
-engram search "..." -k 10 --since 2026-07-01 --session growth
-engram stats | config | progress                 # status · config · progress
+vestige web                            # web UI → http://127.0.0.1:8642
+vestige search "..." -k 10 --since 2026-07-01 --session growth
+vestige stats | config | progress                 # status · config · progress
 ```
 
 > Extras: `[web]` web UI · `[enrich]` cloud/local summary backends · `[mcp]` MCP server · `[all]` everything.
-> (The command is `engram`, alias `mem`; data lives in `~/engram/data`.)
+> (The command is `vestige`, alias `mem`; data lives in `~/vestige/data`.)
 
 </details>
 
@@ -175,7 +175,7 @@ engram stats | config | progress                 # status · config · progress
 
 <br>
 
-Summaries/tags are **optional** (search runs on the raw text). Pick a backend via `ENGRAM_ENRICH_BACKEND`:
+Summaries/tags are **optional** (search runs on the raw text). Pick a backend via `VESTIGE_ENRICH_BACKEND`:
 
 | Backend | Description | Requirements |
 |--------|------|-----------|
@@ -186,10 +186,10 @@ Summaries/tags are **optional** (search runs on the raw text). Pick a backend vi
 
 `openai`/`gemini`/`ollama` all speak the OpenAI-compatible API (LM Studio, vLLM, Groq, … work too).
 
-> On macOS the app is launched from Finder and doesn't inherit your shell `PATH`, so it may not find the `claude` CLI even when it's installed. Engram looks in the usual spots (`/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, …); if yours lives elsewhere, point at it with `ENGRAM_CLAUDE_BIN=/full/path/to/claude`.
+> On macOS the app is launched from Finder and doesn't inherit your shell `PATH`, so it may not find the `claude` CLI even when it's installed. Vestige looks in the usual spots (`/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, …); if yours lives elsewhere, point at it with `VESTIGE_CLAUDE_BIN=/full/path/to/claude`.
 
 ```bash
-ENGRAM_ENRICH_BACKEND=ollama ENGRAM_OLLAMA_MODEL=llama3.1 engram enrich   # local, zero leakage
+VESTIGE_ENRICH_BACKEND=ollama VESTIGE_OLLAMA_MODEL=llama3.1 vestige enrich   # local, zero leakage
 ```
 
 </details>
@@ -204,11 +204,11 @@ Registering the MCP server lets Claude Code, Desktop, etc. **search and view** y
 > **Easiest:** in the app, **Settings → MCP integration**, use the register buttons per target.
 
 ```bash
-claude mcp add engram -- engram-mcp
+claude mcp add vestige -- vestige-mcp
 ```
 
 ```json
-{ "mcpServers": { "engram": { "command": "engram-mcp" } } }
+{ "mcpServers": { "vestige": { "command": "vestige-mcp" } } }
 ```
 
 Tools: `search_memory` · `get_session` · `recent_sessions` · `stats`.
@@ -222,7 +222,7 @@ Tools: `search_memory` · `get_session` · `recent_sessions` · `stats`.
 
 Pushing a tag (`vX.Y.Z`) makes GitHub Actions build the Windows/Linux/macOS installers and attach them to the release (with `latest.yml` for auto-update):
 
-1. Bump `version` in `electron/package.json` **and in the `Casks/engram.rb` of the [homebrew-engram](https://github.com/flyingjoojak/homebrew-engram) tap repo**, and summarize changes (with the date) in `CHANGELOG.md`. If you forget the cask version, later `brew install --cask` fetches the old dmg and 404s. (The cask lives in the tap repo, not this one.)
+1. Bump `version` in `electron/package.json` **and in the `Casks/vestige.rb` of the [homebrew-vestige](https://github.com/flyingjoojak/homebrew-vestige) tap repo**, and summarize changes (with the date) in `CHANGELOG.md`. If you forget the cask version, later `brew install --cask` fetches the old dmg and 404s. (The cask lives in the tap repo, not this one.)
 2. `git tag v0.2.0 && git push origin v0.2.0`.
 3. Once the release exists, **confirm the macOS `.dmg` is actually attached** - the mac build is unsigned and runs with `continue-on-error` in CI, so a silent failure still produces a green release (and then Homebrew 404s).
 4. **The release body shows in the app's update banner** - split it with `<!--lang:en-->` / `<!--lang:ko-->` markers and the banner shows the section matching the user's language.
@@ -233,13 +233,13 @@ macOS: unsigned apps can't auto-update, so install/update via **Homebrew** (no G
 
 ## Contributing
 
-The most valuable contribution is **teaching Engram to read a new tool's logs** (Aider, Cursor,
+The most valuable contribution is **teaching Vestige to read a new tool's logs** (Aider, Cursor,
 Gemini CLI, …). It's a single self-contained adapter file - the search, map, and storage pipeline
 stay untouched. See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the four-method contract, a worked
 example, and the security rules for adapters.
 
 ## License
 
-**MIT** - see [LICENSE](LICENSE). Engram bundles the [Syncthing](https://syncthing.net/) (MPL-2.0) engine for device sync; other third-party licenses are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+**MIT** - see [LICENSE](LICENSE). Vestige bundles the [Syncthing](https://syncthing.net/) (MPL-2.0) engine for device sync; other third-party licenses are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 <div align="center"><br><sub>Built for people who talk to their AI all day - and want to remember what they said.</sub><br><sub>Built with <a href="https://claude.com/claude-code">Claude Code</a>.</sub></div>

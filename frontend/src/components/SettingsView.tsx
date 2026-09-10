@@ -25,11 +25,11 @@ import { type ThemeMode, getThemeMode, setThemeMode } from "@/lib/theme"
 import { getLang, setLang, type Lang } from "@/lib/lang"
 
 const BACKENDS = [
-  { v: "claude", labelKey: "settings.backendClaude", key: null, keyEx: "", keyExKey: null, modelEnv: "ENGRAM_ENRICH_MODEL", models: ["sonnet", "opus", "haiku"] },
-  { v: "anthropic", labelKey: "settings.backendAnthropic", key: "ANTHROPIC_API_KEY", keyEx: "sk-ant-api03-...", keyExKey: "settings.keyExAnthropic", modelEnv: "ENGRAM_ENRICH_API_MODEL", models: ["claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5"] },
-  { v: "openai", labelKey: "settings.backendOpenai", key: "OPENAI_API_KEY", keyEx: "sk-... or sk-proj-...", keyExKey: "settings.keyExOpenai", modelEnv: "ENGRAM_OPENAI_MODEL", models: ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini"] },
-  { v: "gemini", labelKey: "settings.backendGemini", key: "GEMINI_API_KEY", keyEx: "AIza...", keyExKey: "settings.keyExGemini", modelEnv: "ENGRAM_GEMINI_MODEL", models: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"] },
-  { v: "ollama", labelKey: "settings.backendOllama", key: null, keyEx: "", keyExKey: null, modelEnv: "ENGRAM_OLLAMA_MODEL", models: ["llama3.1", "llama3.2", "qwen2.5", "mistral", "gemma2"] },
+  { v: "claude", labelKey: "settings.backendClaude", key: null, keyEx: "", keyExKey: null, modelEnv: "VESTIGE_ENRICH_MODEL", models: ["sonnet", "opus", "haiku"] },
+  { v: "anthropic", labelKey: "settings.backendAnthropic", key: "ANTHROPIC_API_KEY", keyEx: "sk-ant-api03-...", keyExKey: "settings.keyExAnthropic", modelEnv: "VESTIGE_ENRICH_API_MODEL", models: ["claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5"] },
+  { v: "openai", labelKey: "settings.backendOpenai", key: "OPENAI_API_KEY", keyEx: "sk-... or sk-proj-...", keyExKey: "settings.keyExOpenai", modelEnv: "VESTIGE_OPENAI_MODEL", models: ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini"] },
+  { v: "gemini", labelKey: "settings.backendGemini", key: "GEMINI_API_KEY", keyEx: "AIza...", keyExKey: "settings.keyExGemini", modelEnv: "VESTIGE_GEMINI_MODEL", models: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"] },
+  { v: "ollama", labelKey: "settings.backendOllama", key: null, keyEx: "", keyExKey: null, modelEnv: "VESTIGE_OLLAMA_MODEL", models: ["llama3.1", "llama3.2", "qwen2.5", "mistral", "gemma2"] },
   { v: "off", labelKey: "settings.backendOff", key: null, keyEx: "", keyExKey: null, modelEnv: null, models: [] },
 ] as const
 const CUSTOM = "__custom__"
@@ -114,7 +114,7 @@ function FolderRow({ label, chip, path, onPathChange, onSave, saved, err, placeh
   )
 }
 
-// MCP 연동: engram-mcp를 각 클라이언트 설정에 등록/해제(파일은 .bak 백업 후 수정).
+// MCP 연동: vestige-mcp를 각 클라이언트 설정에 등록/해제(파일은 .bak 백업 후 수정).
 function McpSection() {
   const { t } = useTranslation()
   const [targets, setTargets] = useState<McpTarget[] | null>(null)
@@ -594,7 +594,7 @@ export function SettingsView() {
     if (skipSdkBusy) return
     setSkipSdkBusy(true); setSkipSdk(next)
     try {
-      await putConfig({ ENGRAM_SKIP_SDK_SESSIONS: next ? "1" : "0" })   // 끌 땐 명시적 0(기본이 켜짐이라 빈값=켜짐)
+      await putConfig({ VESTIGE_SKIP_SDK_SESSIONS: next ? "1" : "0" })   // 끌 땐 명시적 0(기본이 켜짐이라 빈값=켜짐)
       getConfig().then(setCfg).catch(() => {})
     } catch {
       setSkipSdk(!next)   // 실패 시 되돌림
@@ -667,13 +667,13 @@ export function SettingsView() {
 
   async function commitSave() {
     const u: Record<string, string> = {
-      ENGRAM_ENRICH_BACKEND: backend,
-      ENGRAM_ENRICH_TIME: enrichTime,
+      VESTIGE_ENRICH_BACKEND: backend,
+      VESTIGE_ENRICH_TIME: enrichTime,
     }
     if (be.modelEnv && model) u[be.modelEnv] = model
     if (be.key && apiKey) u[be.key] = apiKey
-    if (backend === "ollama" && ollamaUrl) u.ENGRAM_OLLAMA_URL = ollamaUrl
-    if (backend === "claude") u.ENGRAM_CLAUDE_BIN = claudeBin.trim()   // 빈값=자동 탐색으로 되돌림
+    if (backend === "ollama" && ollamaUrl) u.VESTIGE_OLLAMA_URL = ollamaUrl
+    if (backend === "claude") u.VESTIGE_CLAUDE_BIN = claudeBin.trim()   // 빈값=자동 탐색으로 되돌림
     try {
       const r = await putConfig(u)
       if (!r.ok) { setBlockMsg(errText(t, r, "settings.saveFailed")); return }
@@ -733,7 +733,7 @@ export function SettingsView() {
   async function saveIndex(mode: IndexMode = indexMode) {
     clearIndexTimer()
     setIndexMode(mode)
-    await commitIndex({ ENGRAM_INDEX_MODE: mode, ENGRAM_INDEX_INTERVAL: String(interval), ENGRAM_INDEX_TIME: indexTime })
+    await commitIndex({ VESTIGE_INDEX_MODE: mode, VESTIGE_INDEX_INTERVAL: String(interval), VESTIGE_INDEX_TIME: indexTime })
   }
   // 색인 모드 세그먼트: 표시(선택)는 즉시, 백엔드 커밋은 디바운스 —
   // radiogroup 화살표 이동이 키 입력마다 putConfig를 쏘지 않게(WCAG 3.2.2). 모드만 저장해
@@ -741,7 +741,7 @@ export function SettingsView() {
   function onIndexModeChange(m: IndexMode) {
     setIndexMode(m); setIndexErr("")
     clearIndexTimer()
-    indexModeTimer.current = window.setTimeout(() => { indexModeTimer.current = null; commitIndex({ ENGRAM_INDEX_MODE: m }) }, 400)
+    indexModeTimer.current = window.setTimeout(() => { indexModeTimer.current = null; commitIndex({ VESTIGE_INDEX_MODE: m }) }, 400)
   }
 
   async function doReindex() {

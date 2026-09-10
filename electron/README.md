@@ -1,4 +1,4 @@
-# engram 데스크탑 (Electron)
+# vestige 데스크탑 (Electron)
 
 Electron 셸이 **파이썬 백엔드(FastAPI+fastembed)를 사이드카로 spawn**하고, 준비되면
 `http://127.0.0.1:<port>/` 를 창에 로드한다. 백엔드가 React 프론트(`frontend/dist`)를
@@ -19,7 +19,7 @@ npm start                             # python packaging/backend_entry.py 를 sp
 ```bash
 # 1) 프론트 빌드
 cd frontend && npm run build
-# 2) 백엔드 사이드카 exe 번들(프론트 dist 임베드) → dist/engram-backend/
+# 2) 백엔드 사이드카 exe 번들(프론트 dist 임베드) → dist/vestige-backend/
 cd .. && bash packaging/build-backend.sh
 # 3) Electron 설치본(백엔드를 resources/backend 로 동봉)
 cd electron && npm install && npm run dist   # → electron/dist/ 에 설치본
@@ -39,13 +39,13 @@ cd electron && npm install && npm run dist   # → electron/dist/ 에 설치본
 
 - `main.js` — 사이드카 spawn·빈 포트·준비 대기·창 로드·생명주기(종료 시 백엔드 kill)·자동업데이트
 - `loading.html` — 백엔드 준비 중 스플래시
-- 백엔드 진입점: `../packaging/backend_entry.py`(개발) / `resources/backend/engram-backend`(배포)
+- 백엔드 진입점: `../packaging/backend_entry.py`(개발) / `resources/backend/vestige-backend`(배포)
 
 ## 셸이 담당하는 것 (Phase 1)
 
 - **단일 인스턴스**: `requestSingleInstanceLock` — 두 번째 실행은 기존 창을 띄우고 종료(포트 충돌·중복 백엔드 방지).
 - **동적 포트**: 빈 포트를 골라 백엔드에 넘김 → 고정 8765 충돌 원천 제거.
-- **managed 모드**: 백엔드를 `ENGRAM_MANAGED=1`로 spawn → 백엔드는 뮤텍스·브라우저 자동열기·app.log를 끔(셸이 담당). stdout/stderr는 셸이 `userData/backend.log`로 캡처.
+- **managed 모드**: 백엔드를 `VESTIGE_MANAGED=1`로 spawn → 백엔드는 뮤텍스·브라우저 자동열기·app.log를 끔(셸이 담당). stdout/stderr는 셸이 `userData/backend.log`로 캡처.
 - **크래시 자동 재시작**: 백엔드가 죽으면 최대 5회 자동 재기동(백오프), 초과 시 안내 화면.
 - **트레이**: 열기 / 백엔드 재시작 / 완전 종료. 창을 닫으면 **트레이로 숨김**(백그라운드 색인·동기 계속).
 - **자동 업데이트**: 패키지 실행 시 GitHub 릴리스 확인(`electron-updater`). 릴리스가 없으면 조용히 무시.

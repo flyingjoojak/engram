@@ -6,14 +6,14 @@
 const { contextBridge, ipcRenderer } = require("electron")
 
 // 업데이트 브리지: 메인(electron-updater)의 이벤트를 SPA가 구독하고, 다운로드/설치를 요청.
-// 브라우저(비-Electron)에서는 window.engramUpdater 가 없으므로 배너가 그냥 안 뜬다.
+// 브라우저(비-Electron)에서는 window.vestigeUpdater 가 없으므로 배너가 그냥 안 뜬다.
 function subscribe(channel, cb) {
   const handler = (_e, payload) => cb(payload)
   ipcRenderer.on(channel, handler)
   return () => ipcRenderer.removeListener(channel, handler) // React cleanup 용
 }
 
-contextBridge.exposeInMainWorld("engramUpdater", {
+contextBridge.exposeInMainWorld("vestigeUpdater", {
   onAvailable: (cb) => subscribe("cm-update-available", cb),
   onProgress: (cb) => subscribe("cm-update-progress", cb),
   onDownloaded: (cb) => subscribe("cm-update-downloaded", cb),

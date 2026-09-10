@@ -1,4 +1,4 @@
-// Engram 데스크탑 셸 (Electron)
+// Vestige 데스크탑 셸 (Electron)
 // 파이썬 백엔드(FastAPI+fastembed) 사이드카를 spawn·감독 → 준비되면 창에 로드.
 // 백엔드가 React 프론트를 / 에서 서빙하므로 창은 http://127.0.0.1:<port>/ 만 로드.
 // 셸이 담당: 단일 인스턴스 · 동적 포트 · 크래시 자동 재시작 · 트레이 · 로그 캡처 · 자동 업데이트.
@@ -58,7 +58,7 @@ function backendCommand(p) {
     const repo = path.resolve(__dirname, "..")
     return { cmd: "python", args: [path.join(repo, "packaging", "backend_entry.py"), String(p)], cwd: repo }
   }
-  const exe = process.platform === "win32" ? "engram-backend.exe" : "engram-backend"
+  const exe = process.platform === "win32" ? "vestige-backend.exe" : "vestige-backend"
   const dir = path.join(process.resourcesPath, "backend")
   return { cmd: path.join(dir, exe), args: [String(p)], cwd: dir }
 }
@@ -69,8 +69,8 @@ function logPath() {
 
 function spawnBackend() {
   const { cmd, args, cwd } = backendCommand(port)
-  // ENGRAM_MANAGED=1 → 백엔드가 뮤텍스·브라우저 자동열기·app.log를 끔(셸이 담당).
-  const env = { ...process.env, ENGRAM_MANAGED: "1", ENGRAM_PORT: String(port) }
+  // VESTIGE_MANAGED=1 → 백엔드가 뮤텍스·브라우저 자동열기·app.log를 끔(셸이 담당).
+  const env = { ...process.env, VESTIGE_MANAGED: "1", VESTIGE_PORT: String(port) }
   backend = spawn(cmd, args, { cwd, env, stdio: ["ignore", "pipe", "pipe"], windowsHide: true })
   try {
     logStream = logStream || fs.createWriteStream(logPath(), { flags: "a" })
@@ -141,7 +141,7 @@ function createWindow() {
   nativeTheme.themeSource = "dark"
   win = new BrowserWindow({
     width: 1280, height: 800, minWidth: 960, minHeight: 600,
-    backgroundColor: "#0c0d10", title: "Engram", show: false,
+    backgroundColor: "#0c0d10", title: "Vestige", show: false,
     autoHideMenuBar: true, icon: path.join(__dirname, "icon.png"),
     webPreferences: {
       contextIsolation: true, nodeIntegration: false,
@@ -178,7 +178,7 @@ function createTray() {
   try {
     const img = nativeImage.createFromPath(path.join(__dirname, "icon.png")).resize({ width: 16, height: 16 })
     tray = new Tray(img)
-    tray.setToolTip("Engram")
+    tray.setToolTip("Vestige")
     tray.setContextMenu(Menu.buildFromTemplate([
       { label: "열기", click: showWindow },
       { label: "백엔드 재시작", click: () => { killBackend(); restarts = 0; bootAndLoad() } },
@@ -235,11 +235,11 @@ function onUpdError(message) {
 function setupAutoUpdate() {
   ipcMain.on("cm-update-request", replayUpdate)
 
-  // 개발 미리보기: ENGRAM_FAKE_UPDATE=1 이면 가짜 흐름으로 배너 UI를 확인.
+  // 개발 미리보기: VESTIGE_FAKE_UPDATE=1 이면 가짜 흐름으로 배너 UI를 확인.
   if (!app.isPackaged) {
-    if (!process.env.ENGRAM_FAKE_UPDATE) return
+    if (!process.env.VESTIGE_FAKE_UPDATE) return
     onAvailable({
-      version: process.env.ENGRAM_FAKE_UPDATE_VERSION || "9.9.9",
+      version: process.env.VESTIGE_FAKE_UPDATE_VERSION || "9.9.9",
       releaseName: "미리보기 릴리스",
       releaseNotes: "새로운 기능\n- 업데이트 알림 배너 추가\n\nNew\n- Update notification banner",
       releaseDate: new Date().toISOString(),
@@ -261,12 +261,12 @@ function setupAutoUpdate() {
   // GitHub 릴리스에서 최신 버전을 직접 확인해 배너로 알리고, 사용자가 누르면 다운로드 페이지를 연다.
   // (서명 인증서가 준비되면 이 분기를 제거하고 아래 electron-updater 경로로 통일하면 된다.)
   if (process.platform === "darwin") {
-    const REPO = "flyingjoojak/engram"
+    const REPO = "flyingjoojak/vestige"
     let dlUrl = `https://github.com/${REPO}/releases/latest`
     const httpsMod = require("https")
     // 리다이렉트는 최대 3회까지만 추적(주석과 구현 일치 + 리다이렉트 루프 방어).
     const getJson = (url, depth = 0) => new Promise((resolve, reject) => {
-      httpsMod.get(url, { headers: { "User-Agent": "Engram", Accept: "application/vnd.github+json" } }, (res) => {
+      httpsMod.get(url, { headers: { "User-Agent": "Vestige", Accept: "application/vnd.github+json" } }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           res.resume()
           if (depth >= 3) { reject(new Error("리다이렉트 횟수 초과")); return }

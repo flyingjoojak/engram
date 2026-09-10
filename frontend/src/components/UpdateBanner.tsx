@@ -12,7 +12,7 @@ type UpdateInfo = {
   // macOS 미서명 빌드: 자동 다운로드/설치 대신 다운로드 페이지를 여는 '안내형' 업데이트.
   assisted?: boolean
 }
-type EngramUpdater = {
+type VestigeUpdater = {
   onAvailable: (cb: (info: UpdateInfo) => void) => () => void
   onProgress: (cb: (p: { percent: number }) => void) => () => void
   onDownloaded: (cb: (info: { version: string }) => void) => () => void
@@ -24,7 +24,7 @@ type EngramUpdater = {
 
 declare global {
   interface Window {
-    engramUpdater?: EngramUpdater
+    vestigeUpdater?: VestigeUpdater
   }
 }
 
@@ -41,7 +41,7 @@ export function UpdateBanner() {
   const [assistedOpened, setAssistedOpened] = useState(false)   // macOS 안내형: 다운로드 페이지 연 뒤 확인 표시
 
   useEffect(() => {
-    const up = window.engramUpdater
+    const up = window.vestigeUpdater
     if (!up) return
     const offs = [
       up.onAvailable((i) => { setInfo(i); setPhase("available"); setError(null); setDismissed(false); setAssistedOpened(false) }),
@@ -59,12 +59,12 @@ export function UpdateBanner() {
     return () => offs.forEach((off) => off())
   }, [])
 
-  if (!window.engramUpdater || phase === "idle" || dismissed) return null
+  if (!window.vestigeUpdater || phase === "idle" || dismissed) return null
 
   const version = info?.version ? `v${info.version}` : t("update.newVersion")
   // 릴리스 노트는 앱 언어에 맞는 섹션만 표시(GitHub 본문에 <!--lang:en-->/<!--lang:ko--> 로 구분).
   const notes = pickReleaseNotes(info?.releaseNotes, i18n.language)
-  const startDownload = () => { setError(null); setPercent(0); setPhase("downloading"); window.engramUpdater?.download() }
+  const startDownload = () => { setError(null); setPercent(0); setPhase("downloading"); window.vestigeUpdater?.download() }
 
   return (
     <div role="status" className="border-b border-primary/30 bg-primary/10 px-4 py-2 text-[13px] text-foreground">
@@ -89,7 +89,7 @@ export function UpdateBanner() {
                 // macOS 미서명: 자동 설치 불가 → 다운로드 페이지를 열고, 즉시 닫지 않고 안내를 남겨
                 // 포커스 유실과 무피드백을 방지(a11y).
                 <button
-                  onClick={() => { window.engramUpdater?.download(); setAssistedOpened(true) }}
+                  onClick={() => { window.vestigeUpdater?.download(); setAssistedOpened(true) }}
                   disabled={assistedOpened}
                   aria-describedby="assisted-update-help"
                   className="rounded-md bg-primary px-2.5 py-0.5 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
@@ -143,7 +143,7 @@ export function UpdateBanner() {
             <span>{t("update.ready", { version })}</span>
             <div className="ml-auto flex items-center gap-1.5">
               <button
-                onClick={() => window.engramUpdater?.install()}
+                onClick={() => window.vestigeUpdater?.install()}
                 className="rounded-md bg-primary px-2.5 py-0.5 font-medium text-primary-foreground hover:bg-primary/90"
               >
                 {t("update.installNow")}

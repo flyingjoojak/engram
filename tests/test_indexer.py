@@ -6,9 +6,9 @@ import json
 
 import numpy as np
 
-from engram.indexer import has_new_data, index_file
-from engram.store import ArchiveDB
-from engram.vectorindex import VectorIndex
+from vestige.indexer import has_new_data, index_file
+from vestige.store import ArchiveDB
+from vestige.vectorindex import VectorIndex
 
 
 class FakeEmbedder:

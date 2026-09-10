@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import engram.cli as cli
+import vestige.cli as cli
 
 
 def test_bare_search_routes_via_entrypoint(monkeypatch):
@@ -20,15 +20,15 @@ def test_bare_search_routes_via_entrypoint(monkeypatch):
 
 
 def test_no_args_prints_help(monkeypatch, capsys):
-    monkeypatch.setattr("sys.argv", ["engram"])
+    monkeypatch.setattr("sys.argv", ["vestige"])
     assert cli.main() == 0
     out = capsys.readouterr().out
     assert "search" in out and "setup" in out
 
 
 def test_setup_creates_dir_and_config(tmp_path, monkeypatch):
-    from engram import config as C
-    from engram import scheduler as S
+    from vestige import config as C
+    from vestige import scheduler as S
 
     data = tmp_path / "data"
     cfg = tmp_path / "config.env"
@@ -46,6 +46,6 @@ def test_setup_creates_dir_and_config(tmp_path, monkeypatch):
     assert cfg.exists()
 
     # 이미 있으면 덮어쓰지 않음(사용자 값 보존)
-    cfg.write_text("ENGRAM_ENRICH_BACKEND=off\n", encoding="utf-8")
+    cfg.write_text("VESTIGE_ENRICH_BACKEND=off\n", encoding="utf-8")
     cli.cmd_setup(args)
     assert "off" in cfg.read_text(encoding="utf-8")

@@ -1,12 +1,12 @@
 """Syncthing rename 잔재 폴더 자가복구 테스트.
 
-chatmem→engram 이름 변경으로 같은 경로에 두 폴더(chatmem-/engram-claude-projects)가 생기면
+chatmem→vestige 이름 변경으로 같은 경로에 두 폴더(chatmem-/vestige-claude-projects)가 생기면
 Syncthing이 충돌로 동기화가 막힌다. startup의 migrate_legacy_folder가 상대 기기를 새 폴더로
 옮기고 옛 폴더를 제거하는지 검증(실 REST 없이 호출만 기록)."""
 
 from __future__ import annotations
 
-import engram.syncthing as st
+import vestige.syncthing as st
 
 
 class _FakeST(st.Syncthing):

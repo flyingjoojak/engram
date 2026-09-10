@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from engram.filters import should_embed
-from engram.parser import (
+from vestige.filters import should_embed
+from vestige.parser import (
     extract_turns,
     is_real_user_prompt,
     is_structural_noise,
@@ -69,7 +69,7 @@ def test_compaction_summary_excluded_from_turns():
 
 def test_bash_mode_and_interrupt_excluded():
     # `!` bash 모드 입력/출력, 중단 마커 = 대화 아님.
-    for txt in ("<bash-input> python -m engram progress</bash-input>",
+    for txt in ("<bash-input> python -m vestige progress</bash-input>",
                 "<bash-stdout>...</bash-stdout><bash-stderr></bash-stderr>",
                 "[Request interrupted by user for tool use]"):
         assert not is_real_user_prompt(
@@ -110,7 +110,7 @@ def test_system_events_not_a_prompt():
 
 def test_enrichment_prompt_not_a_prompt():
     # 정제 claude -p 세션(자기오염) 제외 — sentinel/구버전 둘 다.
-    assert not is_real_user_prompt(_user("u1", "<<CHATMEM-ENRICH>> engram 정제 작업..."))
+    assert not is_real_user_prompt(_user("u1", "<<CHATMEM-ENRICH>> vestige 정제 작업..."))
     assert not is_real_user_prompt(_user("u1", "다음은 한 Claude Code 세션의 대화 턴들이다.\n각 턴마다..."))
 
 
@@ -122,7 +122,7 @@ def test_tool_result_not_a_prompt():
     assert not is_real_user_prompt(obj)
 
 
-# --- sdk 세션은 기본 제외, ENGRAM_SKIP_SDK_SESSIONS=0 일 때만 포함 -------
+# --- sdk 세션은 기본 제외, VESTIGE_SKIP_SDK_SESSIONS=0 일 때만 포함 -------
 def _user_src(uuid, text, src):
     o = _user(uuid, text)
     o["promptSource"] = src
@@ -131,41 +131,41 @@ def _user_src(uuid, text, src):
 
 def test_sdk_prompt_excluded_by_default(monkeypatch):
     # 기본 켜짐: sdk(claude -p 등 자동화)는 제외. 한 번 색인하면 못 지우니 손실 없는 쪽이 기본.
-    monkeypatch.delenv("ENGRAM_SKIP_SDK_SESSIONS", raising=False)
+    monkeypatch.delenv("VESTIGE_SKIP_SDK_SESSIONS", raising=False)
     assert not is_real_user_prompt(_user_src("u1", "run the nightly summary", "sdk"))
 
 
 def test_system_prompt_not_specially_filtered_by_promptsource(monkeypatch):
     # system(<task-notification> 등)은 promptSource 가 아니라 기존 plumbing 필터가 처리한다.
     # 실텍스트를 가진 system 프롬프트는 promptSource 때문에 제외되지 않는다(회귀 방지: 맥 typed=1 대량손실).
-    monkeypatch.delenv("ENGRAM_SKIP_SDK_SESSIONS", raising=False)
+    monkeypatch.delenv("VESTIGE_SKIP_SDK_SESSIONS", raising=False)
     assert is_real_user_prompt(_user_src("u1", "이 버그 고쳐줘", "system"))
 
 
 def test_non_sdk_sources_indexed_by_default(monkeypatch):
     # 기본 켜짐이라도 sdk 만 제외 — 사람 소스(typed 등)와 system 은 그대로 색인.
-    monkeypatch.delenv("ENGRAM_SKIP_SDK_SESSIONS", raising=False)
+    monkeypatch.delenv("VESTIGE_SKIP_SDK_SESSIONS", raising=False)
     for src in ("typed", "queued", "suggestion_accepted", "system"):
         assert is_real_user_prompt(_user_src("u1", "이거 고쳐줘", src)), src
     assert not is_real_user_prompt(_user_src("u1", "이거 고쳐줘", "sdk"))
 
 
 def test_missing_prompt_source_treated_as_human(monkeypatch):
-    monkeypatch.delenv("ENGRAM_SKIP_SDK_SESSIONS", raising=False)
+    monkeypatch.delenv("VESTIGE_SKIP_SDK_SESSIONS", raising=False)
     assert is_real_user_prompt(_user("u1", "질문"))
 
 
 def test_sdk_opt_in_env_includes_sdk(monkeypatch):
-    # ENGRAM_SKIP_SDK_SESSIONS=0 으로 끄면 sdk 도 색인(SDK 로 실제 작업하는 사람용).
-    monkeypatch.setenv("ENGRAM_SKIP_SDK_SESSIONS", "0")
+    # VESTIGE_SKIP_SDK_SESSIONS=0 으로 끄면 sdk 도 색인(SDK 로 실제 작업하는 사람용).
+    monkeypatch.setenv("VESTIGE_SKIP_SDK_SESSIONS", "0")
     assert is_real_user_prompt(_user_src("u1", "run the nightly summary", "sdk"))
     assert is_real_user_prompt(_user_src("u1", "이거 고쳐줘", "typed"))
 
 
 def test_is_sdk_prompt_counts_sdk_regardless_of_setting(monkeypatch):
-    from engram.parser import is_sdk_prompt
+    from vestige.parser import is_sdk_prompt
     # 집계용: skip 설정과 무관하게 sdk 여부만 판정
-    monkeypatch.delenv("ENGRAM_SKIP_SDK_SESSIONS", raising=False)
+    monkeypatch.delenv("VESTIGE_SKIP_SDK_SESSIONS", raising=False)
     assert is_sdk_prompt(_user_src("u1", "run nightly", "sdk")) is True
     assert is_sdk_prompt(_user_src("u1", "이거 고쳐줘", "typed")) is False
     assert is_sdk_prompt(_user("u1", "질문")) is False          # promptSource 없음
@@ -177,7 +177,7 @@ def test_is_sdk_prompt_counts_sdk_regardless_of_setting(monkeypatch):
 
 def test_sdk_explicit_on_excludes_sdk_only(monkeypatch):
     # 명시적으로 켜도(=1) sdk 만 제외. system 등은 promptSource 로 제외하지 않는다.
-    monkeypatch.setenv("ENGRAM_SKIP_SDK_SESSIONS", "1")
+    monkeypatch.setenv("VESTIGE_SKIP_SDK_SESSIONS", "1")
     assert not is_real_user_prompt(_user_src("u1", "run the nightly summary", "sdk"))
     assert is_real_user_prompt(_user_src("u1", "이거 고쳐줘", "typed"))
 

@@ -11,11 +11,11 @@ import subprocess
 import sys
 import textwrap
 
-import engram.proclock as pl
+import vestige.proclock as pl
 
 
 def _point_data_dir(monkeypatch, tmp_path):
-    from engram import config as C
+    from vestige import config as C
     monkeypatch.setattr(C, "DATA_DIR", tmp_path)
 
 
@@ -60,9 +60,9 @@ def test_cross_process_mutual_exclusion(monkeypatch, tmp_path):
     code = textwrap.dedent(f"""
         import os, time
         from pathlib import Path
-        from engram import config as C
+        from vestige import config as C
         C.DATA_DIR = Path({str(tmp_path)!r})
-        import engram.proclock as pl
+        import vestige.proclock as pl
         lk = pl.IndexLock()
         assert lk.acquire()
         open({str(ready)!r}, "w").close()          # 잡았다고 신호

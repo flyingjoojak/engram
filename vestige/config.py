@@ -9,47 +9,56 @@ from pathlib import Path
 # 설정 키 형식(env 이름): 영문·숫자·밑줄, 숫자 선두 금지. '='·개행·임의 키 주입 차단용.
 _CONFIG_KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
-# --- 레거시 back-compat: 구 CHATMEM_* 환경변수를 ENGRAM_* 로 미러 ------------
-# 이름 변경(chatmem→engram) 전에 만든 config.env(구 CHATMEM_ 키)·쉘 환경변수가 그대로
-# 동작하도록, ENGRAM_ 쪽이 비어 있을 때만 구 키 값을 넘겨준다(신규 키가 항상 우선).
-# 반드시 아래의 모듈 레벨 `os.environ.get("ENGRAM_...")` 읽기보다 먼저 실행돼야 한다.
-for _legacy_k, _legacy_v in list(os.environ.items()):
-    if _legacy_k.startswith("CHATMEM_"):
-        os.environ.setdefault("ENGRAM_" + _legacy_k[len("CHATMEM_"):], _legacy_v)
+# --- 레거시 back-compat: 구 ENGRAM_*/CHATMEM_* 환경변수를 VESTIGE_* 로 미러 ------
+# 이름 변경(chatmem→engram→vestige) 전에 만든 config.env(구 키)·쉘 환경변수가 그대로
+# 동작하도록, VESTIGE_ 쪽이 비어 있을 때만 구 키 값을 넘겨준다(신규 키가 항상 우선).
+# 우선순위 VESTIGE_ > ENGRAM_ > CHATMEM_ → ENGRAM_ 을 먼저 미러(setdefault=먼저 채운 값 유지).
+# 반드시 아래의 모듈 레벨 `os.environ.get("VESTIGE_...")` 읽기보다 먼저 실행돼야 한다.
+for _legacy_prefix in ("ENGRAM_", "CHATMEM_"):
+    for _legacy_k, _legacy_v in list(os.environ.items()):
+        if _legacy_k.startswith(_legacy_prefix):
+            os.environ.setdefault("VESTIGE_" + _legacy_k[len(_legacy_prefix):], _legacy_v)
 
 
-# --- 레거시 홈 폴더 이전: ~/chat-memory → ~/engram (무손실) -----------------
-# 구버전은 홈의 chat-memory 폴더에 config.env·data(아카이브 SQLite/벡터/커서)를 뒀다.
-# 명시적 경로 오버라이드가 없고, 신규 폴더가 아직 없으며 구 폴더만 있으면 통째로 rename.
-# CONFIG_PATH/_load_config_file 이 신규 위치에서 config.env 를 찾을 수 있게 먼저 실행한다.
+# --- 레거시 홈 폴더 이전: ~/engram·~/chat-memory → ~/vestige (무손실) ----------
+# 구버전은 홈의 engram(구구버전 chat-memory) 폴더에 config.env·data(아카이브 SQLite/
+# 벡터/커서)를 뒀다. 명시적 경로 오버라이드가 없고, 신규 폴더가 아직 없으며 구 폴더만
+# 있으면 통째로 rename. CONFIG_PATH/_load_config_file 이 신규 위치에서 config.env 를
+# 찾을 수 있게 먼저 실행한다.
 def _migrate_legacy_home() -> None:
-    # 사용자가 경로를 명시했으면(구/신 어느 쪽 env든) 그 뜻을 존중하고 건드리지 않는다.
-    if any(os.environ.get(k) for k in
-           ("ENGRAM_CONFIG", "CHATMEM_CONFIG", "ENGRAM_DATA_DIR", "CHATMEM_DATA_DIR")):
+    # 사용자가 경로를 명시했으면(신/구 어느 쪽 env든) 그 뜻을 존중하고 건드리지 않는다.
+    if any(os.environ.get(k) for k in (
+            "VESTIGE_CONFIG", "ENGRAM_CONFIG", "CHATMEM_CONFIG",
+            "VESTIGE_DATA_DIR", "ENGRAM_DATA_DIR", "CHATMEM_DATA_DIR")):
         return
-    old = Path.home() / "chat-memory"
-    new = Path.home() / "engram"
-    try:
-        if not (old.is_dir() and not new.exists()):
+    new = Path.home() / "vestige"
+    if new.exists():
+        return
+    # 최신 레거시부터 시도(engram → chat-memory). 처음 매칭되는 데이터 홈을 옮긴다.
+    for _old_name in ("engram", "chat-memory"):
+        old = Path.home() / _old_name
+        try:
+            if not old.is_dir():
+                continue
+            # ★ 안전장치: '데이터 홈'처럼 보일 때만 옮긴다(config.env/data 존재) + git
+            #   체크아웃은 절대 건드리지 않음(개발환경에선 이 레포 자체가 ~/chat-memory 라,
+            #   통째 rename 시 소스 트리를 옮겨버릴 수 있음).
+            if (old / ".git").exists():
+                continue
+            if not ((old / "config.env").exists() or (old / "data").is_dir()):
+                continue
+            os.rename(old, new)
             return
-        # ★ 안전장치: '데이터 홈'처럼 보일 때만 옮긴다(config.env/data 존재) + git 체크아웃은 절대 건드리지 않음.
-        #   (개발환경에선 이 레포 자체가 ~/chat-memory 라, 통째 rename 시 소스 트리를 옮겨버릴 수 있음)
-        if (old / ".git").exists():
-            return
-        looks_like_data_home = (old / "config.env").exists() or (old / "data").is_dir()
-        if not looks_like_data_home:
-            return
-        os.rename(old, new)
-    except Exception:
-        pass  # 이전 실패가 기동을 막지 않도록(폴더가 없으면 아래 기본값이 새로 만든다)
+        except Exception:
+            pass  # 이전 실패가 기동을 막지 않도록(폴더가 없으면 아래 기본값이 새로 만든다)
 
 
 _migrate_legacy_home()
 
 # --- 설정 파일 로드 -----------------------------------------------------
-# ~/engram/config.env (또는 ENGRAM_CONFIG)의 KEY=VALUE 를 환경변수로 로드.
+# ~/vestige/config.env (또는 VESTIGE_CONFIG)의 KEY=VALUE 를 환경변수로 로드.
 # 실제 환경변수가 있으면 그것이 우선(setdefault) → CLI/스케줄러/웹 모두 한 파일로 설정.
-CONFIG_PATH = Path(os.environ.get("ENGRAM_CONFIG", Path.home() / "engram" / "config.env"))
+CONFIG_PATH = Path(os.environ.get("VESTIGE_CONFIG", Path.home() / "vestige" / "config.env"))
 
 
 def _load_config_file(path: Path = CONFIG_PATH) -> None:
@@ -70,28 +79,28 @@ _load_config_file()
 
 # 설정 파일 템플릿(코드 내장 = 설치 방식과 무관하게 setup이 항상 쓸 수 있음).
 # 저장소의 config.env.example 은 같은 내용의 사람용 복사본.
-CONFIG_TEMPLATE = """# engram 설정 파일 (KEY=VALUE, 환경변수가 우선)
-# 확인:  engram config
+CONFIG_TEMPLATE = """# vestige 설정 파일 (KEY=VALUE, 환경변수가 우선)
+# 확인:  vestige config
 
 # ── 정제 백엔드 ──  claude(기본)/anthropic/openai/gemini/ollama/off
-#ENGRAM_ENRICH_BACKEND=claude
+#VESTIGE_ENRICH_BACKEND=claude
 # 로컬 오프라인(Ollama 실행 필요):
-#ENGRAM_ENRICH_BACKEND=ollama
-#ENGRAM_OLLAMA_MODEL=llama3.1
+#VESTIGE_ENRICH_BACKEND=ollama
+#VESTIGE_OLLAMA_MODEL=llama3.1
 # GPT / Gemini (키는 여기 적어도 되지만 이 파일은 절대 공유·커밋 금지):
-#ENGRAM_ENRICH_BACKEND=openai
+#VESTIGE_ENRICH_BACKEND=openai
 #OPENAI_API_KEY=sk-...
-#ENGRAM_ENRICH_BACKEND=gemini
+#VESTIGE_ENRICH_BACKEND=gemini
 #GEMINI_API_KEY=...
 
 # ── 경로 (기본값이면 안 적어도 됨) ──
-#ENGRAM_DATA_DIR=~/engram/data
+#VESTIGE_DATA_DIR=~/vestige/data
 #CLAUDE_PROJECTS_DIR=~/.claude/projects
 
 # ── 임베딩 모델 (변경 시 전체 재색인 필요) ──
 # 기본=int8 e5-large(fp32 수준 품질·색인 약 2배 빠름). 저사양 기기는 아래 MiniLM 옵션.
-#ENGRAM_EMBED_MODEL=intfloat/multilingual-e5-large-int8
-#ENGRAM_EMBED_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+#VESTIGE_EMBED_MODEL=intfloat/multilingual-e5-large-int8
+#VESTIGE_EMBED_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
 """
 
 # --- 경로 ---------------------------------------------------------------
@@ -114,11 +123,11 @@ def _codex_sessions_dir() -> Path:
 CODEX_SESSIONS_DIR = _codex_sessions_dir()
 
 # 색인할 소스 목록(쉼표). 비우면 등록된 전부. 루트가 없는 소스는 자동 제외.
-# 예: ENGRAM_SOURCES=claude-code  (Codex 색인을 끄고 싶을 때)
-SOURCES_ENV = os.environ.get("ENGRAM_SOURCES", "").strip()
+# 예: VESTIGE_SOURCES=claude-code  (Codex 색인을 끄고 싶을 때)
+SOURCES_ENV = os.environ.get("VESTIGE_SOURCES", "").strip()
 
 # 우리 데이터(아카이브 SQLite + 벡터 npy + 커서)를 두는 곳.
-DATA_DIR = Path(os.environ.get("ENGRAM_DATA_DIR", Path.home() / "engram" / "data"))
+DATA_DIR = Path(os.environ.get("VESTIGE_DATA_DIR", Path.home() / "vestige" / "data"))
 DB_PATH = DATA_DIR / "archive.db"
 VECTORS_PATH = DATA_DIR / "vectors.npy"
 VECTOR_IDS_PATH = DATA_DIR / "vector_ids.json"
@@ -127,14 +136,14 @@ LOG_PATH = DATA_DIR / "batch.log"
 
 # 벡터 저장 백엔드: npy(전량 RAM·빠름·개인) / sqlite-vec(디스크·int8·저RAM·배포).
 # 프리즈된 배포 exe는 backend_entry.py에서 sqlite-vec로 기본 설정.
-VECTOR_BACKEND = os.environ.get("ENGRAM_VECTOR_BACKEND", "npy")
+VECTOR_BACKEND = os.environ.get("VESTIGE_VECTOR_BACKEND", "npy")
 
 # --- 임베딩 -------------------------------------------------------------
 # 색인·검색 공통. 변경 시 전체 재색인 필요(벡터 비호환).
 # 색인·검색 공통. 변경 시 전체 재색인 필요(벡터 비호환).
 # 기본=int8 e5-large(품질≈fp32·색인 2x·0.52GB, 설치본 동봉). 상주 부담은 유휴 언로드(web.py)로 해소.
 # 옵션: fp32 e5-large(최고 품질·무거움) / MiniLM(저사양). 온보딩·설정에서 선택.
-EMBED_MODEL = os.environ.get("ENGRAM_EMBED_MODEL", "intfloat/multilingual-e5-large-int8")
+EMBED_MODEL = os.environ.get("VESTIGE_EMBED_MODEL", "intfloat/multilingual-e5-large-int8")
 # e5 계열은 프리픽스가 성능에 중요.
 E5_QUERY_PREFIX = "query: "
 E5_PASSAGE_PREFIX = "passage: "
@@ -173,21 +182,21 @@ CHECKPOINT_TURNS = 50
 #   gemini    = Google Gemini (OpenAI호환 엔드포인트)   (GEMINI_API_KEY/GOOGLE_API_KEY)
 #   ollama    = 로컬 모델(Ollama, 오프라인·무료)         (키 불필요)
 #   off       = 정제 안 함
-ENRICH_BACKEND = os.environ.get("ENGRAM_ENRICH_BACKEND", "claude")
-ENRICH_CLI_MODEL = os.environ.get("ENGRAM_ENRICH_MODEL", "sonnet")               # claude -p 별칭
-ENRICH_API_MODEL = os.environ.get("ENGRAM_ENRICH_API_MODEL", "claude-sonnet-5")  # anthropic API ID
+ENRICH_BACKEND = os.environ.get("VESTIGE_ENRICH_BACKEND", "claude")
+ENRICH_CLI_MODEL = os.environ.get("VESTIGE_ENRICH_MODEL", "sonnet")               # claude -p 별칭
+ENRICH_API_MODEL = os.environ.get("VESTIGE_ENRICH_API_MODEL", "claude-sonnet-5")  # anthropic API ID
 # OpenAI 호환 계열(openai/gemini/ollama) — SDK 하나로 base_url만 다르게.
-ENRICH_OPENAI_MODEL = os.environ.get("ENGRAM_OPENAI_MODEL", "gpt-4o-mini")
-ENRICH_GEMINI_MODEL = os.environ.get("ENGRAM_GEMINI_MODEL", "gemini-2.0-flash")
-ENRICH_OLLAMA_MODEL = os.environ.get("ENGRAM_OLLAMA_MODEL", "llama3.1")
-ENRICH_OLLAMA_URL = os.environ.get("ENGRAM_OLLAMA_URL", "http://localhost:11434/v1")
+ENRICH_OPENAI_MODEL = os.environ.get("VESTIGE_OPENAI_MODEL", "gpt-4o-mini")
+ENRICH_GEMINI_MODEL = os.environ.get("VESTIGE_GEMINI_MODEL", "gemini-2.0-flash")
+ENRICH_OLLAMA_MODEL = os.environ.get("VESTIGE_OLLAMA_MODEL", "llama3.1")
+ENRICH_OLLAMA_URL = os.environ.get("VESTIGE_OLLAMA_URL", "http://localhost:11434/v1")
 
 # --- 스케줄(설정으로 조정 가능) --------------------------------------
-ENRICH_TIME = os.environ.get("ENGRAM_ENRICH_TIME", "04:00")       # 야간 정제 시각 HH:MM
-INDEX_INTERVAL_MIN = int(os.environ.get("ENGRAM_INDEX_INTERVAL", "10"))  # 증분 인덱싱 주기(분)
+ENRICH_TIME = os.environ.get("VESTIGE_ENRICH_TIME", "04:00")       # 야간 정제 시각 HH:MM
+INDEX_INTERVAL_MIN = int(os.environ.get("VESTIGE_INDEX_INTERVAL", "10"))  # 증분 인덱싱 주기(분)
 # 자동 색인 모드: off(끔)/interval(주기)/realtime(실시간 자동감지)/scheduled(특정 시각 1회).
-INDEX_MODE = os.environ.get("ENGRAM_INDEX_MODE", "interval")
-INDEX_TIME = os.environ.get("ENGRAM_INDEX_TIME", "03:00")   # scheduled 모드 색인 시각 HH:MM
+INDEX_MODE = os.environ.get("VESTIGE_INDEX_MODE", "interval")
+INDEX_TIME = os.environ.get("VESTIGE_INDEX_TIME", "03:00")   # scheduled 모드 색인 시각 HH:MM
 
 
 def write_config(updates: dict[str, str]) -> None:

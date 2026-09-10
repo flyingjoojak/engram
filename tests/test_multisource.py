@@ -6,11 +6,11 @@ import os
 
 import numpy as np
 
-from engram import config
-from engram.indexer import has_new_data, index_all
-from engram.sources import active_sources, enabled_source_names
-from engram.store import ArchiveDB
-from engram.vectorindex import VectorIndex
+from vestige import config
+from vestige.indexer import has_new_data, index_all
+from vestige.sources import active_sources, enabled_source_names
+from vestige.store import ArchiveDB
+from vestige.vectorindex import VectorIndex
 
 SID = "019e80dc-1754-7422-b72f-2d176635efb2"
 

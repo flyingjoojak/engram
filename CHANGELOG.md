@@ -7,6 +7,20 @@
 만들어지고, **그 릴리스 본문이 앱의 업데이트 배너에 그대로 표시**됩니다. 아래처럼
 `<!--lang:ko-->` / `<!--lang:en-->` 마커로 나눠 두면, 배너가 사용자 언어에 맞는 섹션만 보여줍니다.
 
+## [0.2.0] - 2026-09-10
+
+<!--lang:ko-->
+
+### Changed
+- **프로젝트 이름 변경: Engram → Vestige.** 같은 이름의 다른 프로젝트와 겹쳐 이름을 바꿨습니다. 명령은 `vestige`(짧은 별칭 `vst`), MCP 서버는 `vestige-mcp`, 데이터 폴더는 `~/vestige`, 설정 키는 `VESTIGE_*`.
+- **기존 사용자는 그대로 이어집니다(무손실 하위호환).** 구 `~/engram` 데이터 폴더는 첫 실행 때 `~/vestige`로 자동 이전되고, 구 `ENGRAM_*` 환경변수·설정과 예전에 동기화해 둔 `.engram-archive` 스냅샷도 계속 인식합니다. `mem` 명령도 당분간 유지됩니다.
+
+<!--lang:en-->
+
+### Changed
+- **Renamed the project: Engram → Vestige.** Changed to avoid a clash with another project of the same name. The command is `vestige` (short alias `vst`), the MCP server is `vestige-mcp`, the data folder is `~/vestige`, and config keys are `VESTIGE_*`.
+- **Existing users carry over losslessly.** An old `~/engram` data folder is auto-migrated to `~/vestige` on first run, and old `ENGRAM_*` env vars/config plus previously synced `.engram-archive` snapshots are still recognized. The `mem` command still works for now.
+
 ## [0.1.0] - 2026-09-09
 
 <!--lang:ko-->
@@ -87,4 +101,4 @@
 - Verify the Syncthing binary against the official SHA-256.
 - Fixed auto-update artifact filenames to prevent update 404s.
 
-[0.1.0]: https://github.com/flyingjoojak/engram/releases/tag/v0.1.0
+[0.1.0]: https://github.com/flyingjoojak/vestige/releases/tag/v0.1.0

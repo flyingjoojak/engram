@@ -1,5 +1,5 @@
 """CSRF 가드: Host 루프백 검증(리바인딩) + 상태변경 cross/same-site 차단 + Origin 폴백."""
-from engram.web import _csrf_blocked, _host_of
+from vestige.web import _csrf_blocked, _host_of
 
 
 # ── _host_of ──────────────────────────────────────────────────

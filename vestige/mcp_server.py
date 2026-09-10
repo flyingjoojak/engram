@@ -1,6 +1,6 @@
 """MCP 서버 — 외부 AI/도구(Claude Desktop·Code 등)가 과거 Claude Code 대화를 검색·조회.
 
-실행: `engram-mcp` (stdio). 클라이언트 mcpServers에 등록해 사용.
+실행: `vestige-mcp` (stdio). 클라이언트 mcpServers에 등록해 사용.
 검색은 로컬 임베딩·하이브리드(의미+키워드)로, 반환물은 원문 + 정제 요약.
 """
 
@@ -18,14 +18,14 @@ from pathlib import Path
 import numpy  # noqa: F401
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("engram")
+mcp = FastMCP("vestige")
 _state: dict = {}
 
 # 무거운 작업(임베딩·벡터검색·sqlite)은 단일 전용 워커 스레드로 오프로드한다.
 # 이유 1) FastMCP는 동기 툴을 이벤트 루프에서 그대로 실행 → 도는 동안 서버가 멈춘다(핑·동시요청 불가).
 # 이유 2) sqlite 연결은 만든 스레드에서만 쓸 수 있다 → 워커를 하나로 고정해 _db/_embedder/_vi
 #         싱글톤이 항상 같은 스레드에서 생성·사용되게 한다(크로스스레드 에러·동시성 충돌 동시 차단).
-_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="engram-mcp")
+_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="vestige-mcp")
 
 
 async def _offload(fn, *args):

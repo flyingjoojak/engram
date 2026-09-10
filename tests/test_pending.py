@@ -6,7 +6,7 @@ import json
 import os
 import time
 
-from engram.indexer import count_pending, iter_jsonl
+from vestige.indexer import count_pending, iter_jsonl
 
 
 class _FakeDB:

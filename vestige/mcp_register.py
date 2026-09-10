@@ -1,4 +1,4 @@
-"""MCP 서버(engram-mcp)를 여러 MCP 클라이언트 설정에 등록/해제.
+"""MCP 서버(vestige-mcp)를 여러 MCP 클라이언트 설정에 등록/해제.
 
 지원 대상(각자 형식이 달라 개별 처리):
 - Claude Code    : `claude mcp add` CLI (-s user)
@@ -19,22 +19,22 @@ import subprocess
 import sys
 from pathlib import Path
 
-NAME = "engram"
+NAME = "vestige"
 
 
 def mcp_command() -> tuple[str, list[str]]:
     """클라이언트가 실행할 커맨드.
 
     - 패키지(frozen) exe: 자기 자신을 `--mcp` 인자로 실행(별도 설치·python 불필요).
-      frozen에선 `-m engram.mcp_server`가 동작하지 않으므로 이 경로가 유일하다.
-    - 개발: 콘솔스크립트(engram-mcp)가 있으면 그 절대경로, 없으면 `python -m`.
+      frozen에선 `-m vestige.mcp_server`가 동작하지 않으므로 이 경로가 유일하다.
+    - 개발: 콘솔스크립트(vestige-mcp)가 있으면 그 절대경로, 없으면 `python -m`.
     """
     if getattr(sys, "frozen", False):
         return sys.executable, ["--mcp"]
-    exe = shutil.which("engram-mcp")
+    exe = shutil.which("vestige-mcp")
     if exe:
         return exe, []
-    return sys.executable, ["-m", "engram.mcp_server"]
+    return sys.executable, ["-m", "vestige.mcp_server"]
 
 
 def _desktop_path() -> Path:

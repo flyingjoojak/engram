@@ -24,7 +24,7 @@ from . import config
 if TYPE_CHECKING:
     from .sources.base import SourceAdapter
 
-REPO = "flyingjoojak/engram"
+REPO = "flyingjoojak/vestige"
 
 # 문자열 값을 그대로 남겨도 되는(=대화가 아닌 판별자) 키.
 # ⚠️ 키 이름만으로는 부족하다: name/source/status 는 다른 위치에서 실제 내용(경로·프로즈)을
@@ -43,10 +43,10 @@ _MAX_DEPTH = 8
 _MAX_SAMPLES = 12         # 리다acted 예시 레코드 상한(고유 조합별 1개)
 
 
-def _engram_version() -> str:
+def _vestige_version() -> str:
     try:
         from importlib.metadata import version
-        return version("engram")
+        return version("vestige")
     except Exception:  # noqa: BLE001
         return "unknown"
 
@@ -126,7 +126,7 @@ def build_report(source: str) -> dict:
 
     base: dict[str, Any] = {
         "source": source,
-        "engram_version": _engram_version(),
+        "vestige_version": _vestige_version(),
         "repo": REPO,
     }
     adapter = ADAPTERS.get(source)

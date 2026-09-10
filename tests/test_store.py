@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from engram.chunker import Chunk
-from engram.models import Action, Turn
-from engram.store import ArchiveDB
-from engram.vectorindex import VectorIndex
+from vestige.chunker import Chunk
+from vestige.models import Action, Turn
+from vestige.store import ArchiveDB
+from vestige.vectorindex import VectorIndex
 
 
 def _turn(tid, session="s1", ts="2026-07-24T00:00:00Z", q="질문", a="답변", actions=()):
@@ -77,7 +77,7 @@ def test_enrichment_additive(tmp_path):
 
 
 def test_fresh_db_stamped_at_latest_schema_version(tmp_path):
-    from engram.store import _SCHEMA_VERSION
+    from vestige.store import _SCHEMA_VERSION
     db = ArchiveDB(tmp_path / "a.db")
     ver = db.conn.execute("PRAGMA user_version").fetchone()[0]
     assert ver == _SCHEMA_VERSION   # 신규 DB는 곧장 최신으로 스탬프(마이그레이션 재적용 안 함)
@@ -86,7 +86,7 @@ def test_fresh_db_stamped_at_latest_schema_version(tmp_path):
 def test_migrates_legacy_v0_db_up_to_latest(tmp_path):
     import sqlite3
 
-    from engram.store import _SCHEMA_VERSION
+    from vestige.store import _SCHEMA_VERSION
     # 마이그레이션 시스템 이전의 '구' DB 흉내: turns/cursors 를 신규 컬럼 없이, user_version=0 으로 생성.
     p = tmp_path / "legacy.db"
     con = sqlite3.connect(str(p))
@@ -111,7 +111,7 @@ def test_migrates_legacy_v0_db_up_to_latest(tmp_path):
 
 
 def test_reopen_is_noop_idempotent(tmp_path):
-    from engram.store import _SCHEMA_VERSION
+    from vestige.store import _SCHEMA_VERSION
     p = tmp_path / "a.db"
     ArchiveDB(p).commit()
     db = ArchiveDB(p)   # 두 번째 열기 = 이미 최신 → 마이그레이션 재적용 없이 그대로
@@ -169,7 +169,7 @@ def test_vectorindex_replace_existing_key(tmp_path):
 
 
 def test_reconcile_removes_orphan_vectors(tmp_path):
-    from engram.indexer import reconcile
+    from vestige.indexer import reconcile
     db = ArchiveDB(tmp_path / "a.db")
     vi = VectorIndex(tmp_path / "v.npy", tmp_path / "i.json")
     # 턴 2개 + 각 벡터. 이후 한 턴만 turns에서 삭제해 고아 생성.

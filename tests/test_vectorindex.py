@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from engram.vectorindex import VectorIndex, make_index
+from vestige.vectorindex import VectorIndex, make_index
 
 
 def _n(v):
@@ -24,7 +24,7 @@ def test_factory_default_is_npy():
 
 def test_sqlite_vec_roundtrip(tmp_path):
     sqlite_vec = pytest.importorskip("sqlite_vec")  # noqa: F841
-    from engram.vectorindex import SqliteVecIndex
+    from vestige.vectorindex import SqliteVecIndex
 
     vi = SqliteVecIndex(tmp_path / "v.db")
     vi.add(["a#0", "b#0", "c#0"], _vecs())
@@ -47,7 +47,7 @@ def test_sqlite_vec_roundtrip(tmp_path):
 
 def test_sqlite_vec_factory(tmp_path, monkeypatch):
     pytest.importorskip("sqlite_vec")
-    from engram import config as C
-    from engram.vectorindex import SqliteVecIndex
+    from vestige import config as C
+    from vestige.vectorindex import SqliteVecIndex
     monkeypatch.setattr(C, "VECTORS_DB_PATH", tmp_path / "v.db")
     assert isinstance(make_index("sqlite-vec"), SqliteVecIndex)

@@ -1,10 +1,10 @@
-# Contributing to Engram
+# Contributing to Vestige
 
-Thanks for wanting to make Engram better. This guide covers the one contribution that
+Thanks for wanting to make Vestige better. This guide covers the one contribution that
 matters most for the project's reach - **adding support for a new AI coding tool** - plus the
 basics for any change.
 
-Engram indexes conversation logs from AI coding CLIs (Claude Code, Codex today) into a local
+Vestige indexes conversation logs from AI coding CLIs (Claude Code, Codex today) into a local
 hybrid search + 3D map. Every new tool it can read makes it more useful to more people. The
 architecture is built so that adding a tool is a **single self-contained file**, not a change
 that ripples through the pipeline.
@@ -13,13 +13,13 @@ that ripples through the pipeline.
 
 ## Adding a new source adapter (e.g. Aider, Cursor, Gemini CLI)
 
-A "source" is one tool whose logs Engram reads. Adding one means answering four questions about
+A "source" is one tool whose logs Vestige reads. Adding one means answering four questions about
 that tool's log format - nothing about chunking, embedding, storage, search, or the 3D map, all
 of which are tool-agnostic and stay untouched.
 
 ### The contract
 
-An adapter is a class satisfying `engram/sources/base.py::SourceAdapter`:
+An adapter is a class satisfying `vestige/sources/base.py::SourceAdapter`:
 
 | Member | What it does |
 |---|---|
@@ -28,19 +28,19 @@ An adapter is a class satisfying `engram/sources/base.py::SourceAdapter`:
 | `discover(root)` | Yield each session file under the tool's log root. |
 | `read_records(path, start_offset=0)` | Yield `(record_dict, end_offset)` for each **complete** record. Must be incremental and tail-safe: start reading at `start_offset`, and never yield a half-written trailing line (hold it back until the next read). |
 | `is_turn_start(obj)` | Is this record the start of a human's turn (a user prompt)? |
-| `extract_turns(objs)` | Turn a list of records into normalized `Turn` objects (`engram/models.py`). |
+| `extract_turns(objs)` | Turn a list of records into normalized `Turn` objects (`vestige/models.py`). |
 
-A `Turn` is the universal unit the rest of Engram understands: a user question + the assistant's
+A `Turn` is the universal unit the rest of Vestige understands: a user question + the assistant's
 answer + the actions it took. Once your adapter emits `Turn`s, everything downstream just works.
 
 ### Steps
 
-1. **Create `engram/sources/aider.py`** with your adapter class. Read `engram/sources/codex.py`
+1. **Create `vestige/sources/aider.py`** with your adapter class. Read `vestige/sources/codex.py`
    as a worked example - it documents how it absorbs three Codex-specific quirks (context only on
    the first line, schema differs by version, double-logged messages) *inside the adapter* so the
    pipeline never sees them. That's the pattern: **weird tool details are absorbed by the adapter.**
 
-2. **Register it** in `engram/sources/__init__.py`:
+2. **Register it** in `vestige/sources/__init__.py`:
    ```python
    from .aider import AiderAdapter
    ADAPTERS = { ..., AiderAdapter.name: AiderAdapter() }
@@ -49,7 +49,7 @@ answer + the actions it took. Once your adapter emits `Turn`s, everything downst
    ```python
    "aider": Path(C.AIDER_SESSIONS_DIR),
    ```
-   (add the corresponding config entry in `engram/config.py`).
+   (add the corresponding config entry in `vestige/config.py`).
 
 3. **Write a test** under `tests/` (copy `tests/test_codex_source.py`): feed a small real log
    sample through the adapter and assert the `Turn`s come out right. Please include a redacted
@@ -85,7 +85,7 @@ trust a field to exist.
 - **Tests:** `python -m pytest -q` (backend) must stay green. `npx tsc -b --noEmit` and
   `npm --prefix frontend run build` for frontend changes.
 - **Database changes:** the user's `archive.db` is a permanent asset. Never edit `_SCHEMA` in a way
-  that breaks existing DBs - add a versioned, idempotent step to `_MIGRATIONS` in `engram/store.py`
+  that breaks existing DBs - add a versioned, idempotent step to `_MIGRATIONS` in `vestige/store.py`
   instead (see the comment there). Migrations only ever go forward and are appended to the end of
   the list.
 - **Style:** small, focused files; explicit error handling; no secrets. Match the surrounding code.
@@ -94,6 +94,6 @@ trust a field to exist.
 
 ## Scope
 
-Engram is intentionally **local-first and offline**: no accounts, no telemetry, nothing leaves the
+Vestige is intentionally **local-first and offline**: no accounts, no telemetry, nothing leaves the
 machine. Features that require a network service or send conversation data anywhere are out of scope.
 Everything else - new adapters, search quality, the map, performance, platform support - is welcome.

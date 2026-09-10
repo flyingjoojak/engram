@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from engram import syncthing as S
+from vestige import syncthing as S
 
 
 def test_plat_returns_known_shape():
@@ -22,7 +22,7 @@ def test_asset_url_shape():
 def test_binary_path_env_override(tmp_path, monkeypatch):
     fake = tmp_path / "syncthing-custom"
     fake.write_text("x")
-    monkeypatch.setenv("ENGRAM_SYNCTHING_BIN", str(fake))
+    monkeypatch.setenv("VESTIGE_SYNCTHING_BIN", str(fake))
     assert S.binary_path() == fake
 
 

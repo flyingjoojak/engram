@@ -6,7 +6,7 @@ import asyncio
 import threading
 import time
 
-from engram import mcp_server as M
+from vestige import mcp_server as M
 
 
 def test_tools_are_async():

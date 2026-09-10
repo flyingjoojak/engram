@@ -124,8 +124,8 @@ export default function App() {
     <div className="grid h-full grid-cols-[60px_1fr] overflow-hidden pb-7">
       {/* 옵시디언식 좌측 아이콘 리본 */}
       <nav aria-label={t("nav.mainAria")} className="flex flex-col items-center gap-1 border-r bg-sidebar py-3">
-        <svg viewBox="0 0 32 32" className="mb-2 size-8" role="img" aria-label="Engram">
-          <title>Engram</title>
+        <svg viewBox="0 0 32 32" className="mb-2 size-8" role="img" aria-label="Vestige">
+          <title>Vestige</title>
           <rect width="32" height="32" rx="7" fill="#0b0d11" />
           <g stroke="#34d399" strokeWidth="1" strokeOpacity="0.5" strokeLinecap="round">
             <line x1="16" y1="7.5" x2="9.1" y2="14.6" />

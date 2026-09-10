@@ -1,8 +1,8 @@
 """아카이브 export/import — 기기 간 '삭제된 원본 세션'까지 공유(내장 Syncthing 폴더 경유).
 
-Claude Code는 세션 로그를 ~30일만 보관하지만 engram 아카이브는 영구 보존한다. 그런데
+Claude Code는 세션 로그를 ~30일만 보관하지만 vestige 아카이브는 영구 보존한다. 그런데
 archive.db(SQLite)는 직접 동기화하면 손상되므로, 세션 동기 설계와 같은 방식으로:
-  - 각 기기가 자기 아카이브를 텍스트(NDJSON)로 <projects>/.engram-archive/<device_id>.ndjson 에 스냅샷
+  - 각 기기가 자기 아카이브를 텍스트(NDJSON)로 <projects>/.vestige-archive/<device_id>.ndjson 에 스냅샷
     (이미 공유 중인 폴더라 Syncthing이 자동 전파, 기기 하나당 파일 하나 → 다중 writer 충돌 없음)
   - 다른 기기 파일을 읽어 **로컬에 없는 세션(턴/청크/정제)만** import
   - 벡터는 옮기지 않음 → 받은 기기가 자기 임베딩 모델로 backfill(모델·백엔드 달라도 됨)
@@ -19,10 +19,12 @@ from pathlib import Path
 from .models import Turn
 from .store import _actions_from_json
 
-ARCHIVE_DIRNAME = ".engram-archive"
+ARCHIVE_DIRNAME = ".vestige-archive"
 # 레거시(이름 변경 전) 스냅샷 폴더. 신규 export 는 항상 위 폴더에 쓰지만, 예전에
-# 동기화해 둔 .chatmem-archive 스냅샷도 계속 import 할 수 있도록 읽기에서 함께 스캔한다.
+# 동기화해 둔 .engram-archive·.chatmem-archive 스냅샷도 계속 import 할 수 있도록
+# 읽기에서 함께 스캔한다. (하위호환 심볼 LEGACY_ARCHIVE_DIRNAME 유지 + engram 추가)
 LEGACY_ARCHIVE_DIRNAME = ".chatmem-archive"
+LEGACY_ARCHIVE_DIRNAMES = (".engram-archive", ".chatmem-archive")
 
 
 def device_id(db) -> str:
@@ -71,9 +73,9 @@ def import_archives(db, projects_dir: str | Path, my_did: str, log_fn=print) -> 
 
     벡터는 넣지 않음 → 이후 증분 색인의 backfill이 활성 모델로 임베딩(chunk_count>len(vi)이 되므로).
     """
-    # 신규 폴더 + 레거시 폴더(.chatmem-archive)를 함께 스캔 → 예전 스냅샷도 계속 import.
+    # 신규 폴더 + 레거시 폴더(.engram-archive·.chatmem-archive)를 함께 스캔 → 예전 스냅샷도 계속 import.
     dirs = [Path(projects_dir) / ARCHIVE_DIRNAME,
-            Path(projects_dir) / LEGACY_ARCHIVE_DIRNAME]
+            *(Path(projects_dir) / name for name in LEGACY_ARCHIVE_DIRNAMES)]
     files = [p for d in dirs if d.exists() for p in d.glob("*.ndjson")]
     if not files:
         return 0

@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-from engram import config, schema_report
+from vestige import config, schema_report
 
 SID = "019e80dc-1754-7422-b72f-2d176635efb2"
 SECRET = "TOP_SECRET_CONVERSATION_XYZ"

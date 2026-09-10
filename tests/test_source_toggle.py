@@ -1,6 +1,6 @@
 """색인 소스 on/off 토글: sources_disabled meta 가 enabled_source_names 에서 제외되는지."""
-from engram import config, store
-from engram.sources import (disabled_sources, enabled_source_names, is_substream,
+from vestige import config, store
+from vestige.sources import (disabled_sources, enabled_source_names, is_substream,
                              parent_source, toggleable_source_names)
 
 

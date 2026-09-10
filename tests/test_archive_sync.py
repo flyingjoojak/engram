@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from engram import archive_sync as A
-from engram.models import Turn
-from engram.store import ArchiveDB
+from vestige import archive_sync as A
+from vestige.models import Turn
+from vestige.store import ArchiveDB
 
 
 def _turn(tid: str, sid: str, q: str, a: str) -> Turn:
