@@ -81,6 +81,22 @@ def _kst(ts: str) -> str:
         return (ts or "")[:16].replace("T", " ")
 
 
+def _fmt_hit(i: int, h) -> str:
+    """검색/연관 결과 한 건을 마크다운 블록으로(search_memory·find_related 공용)."""
+    t = h.turn
+    head = h.summary or t.question or "(제목 없음)"
+    b = [f"## [{i}] {head}",
+         f"- session: {t.session_id}",
+         f"- 시각: {_kst(t.timestamp)} · 검색근거: {'+'.join(h.sources) or '?'}",
+         f"- Q: {' '.join((t.question or '').split())[:300]}",
+         f"- A: {' '.join((t.answer or '').split())[:700]}"]
+    if t.actions:
+        b.append(f"- 행동: {t.action_summary()[:200]}")
+    if h.tags:
+        b.append(f"- 태그: {', '.join(h.tags)}")
+    return "\n".join(b)
+
+
 def _search_memory(query: str, k: int, semantic_only: bool, since: str, until: str,
                    source: str = "") -> str:
     from .config import EMBED_MODEL
@@ -108,19 +124,46 @@ def _search_memory(query: str, k: int, semantic_only: bool, since: str, until: s
 
     blocks = [warn + f"검색어: {query} — {len(hits)}개 결과\n"]
     for i, h in enumerate(hits, 1):
-        t = h.turn
-        head = h.summary or t.question or "(제목 없음)"
-        b = [f"## [{i}] {head}",
-             f"- session: {t.session_id}",
-             f"- 시각: {_kst(t.timestamp)} · 검색근거: {'+'.join(h.sources) or '?'}",
-             f"- Q: {' '.join((t.question or '').split())[:300]}",
-             f"- A: {' '.join((t.answer or '').split())[:700]}"]
-        if t.actions:
-            b.append(f"- 행동: {t.action_summary()[:200]}")
-        if h.tags:
-            b.append(f"- 태그: {', '.join(h.tags)}")
-        blocks.append("\n".join(b))
+        blocks.append(_fmt_hit(i, h))
     blocks.append("\n더 필요한 맥락이 있으면 get_session(session)으로 해당 세션 전체를 열람하세요.")
+    return "\n\n".join(blocks)
+
+
+def _find_related(target: str, k: int) -> str:
+    from .search import search as run_search
+
+    db, vi = _db(), _vi()
+    if len(vi) == 0:
+        return "인덱스가 비어 있습니다(아직 대화가 색인되지 않음)."
+    target = (target or "").strip()
+    if not target:
+        return "기준이 될 세션 또는 턴 id를 넘겨주세요."
+    # 기준 텍스트 + 제외할 세션: 턴 id 우선, 없으면 세션(prefix)의 대표 텍스트.
+    row = db.conn.execute(
+        "SELECT session_id, question, answer FROM turns WHERE id=?", (target,)).fetchone()
+    if row is not None:
+        exclude_session = row["session_id"]
+        query_text = f"{row['question'] or ''} {row['answer'] or ''}".strip()
+    else:
+        rows = db.conn.execute(
+            "SELECT session_id, summary, question FROM turns WHERE session_id LIKE ? "
+            "ORDER BY timestamp, id LIMIT 12", (target + "%",)).fetchall()
+        if not rows:
+            return f"'{target}' 에 해당하는 턴/세션을 찾지 못했습니다."
+        exclude_session = rows[0]["session_id"]
+        query_text = " ".join(p for p in ((r["summary"] or r["question"] or "") for r in rows) if p).strip()
+    if not query_text:
+        return "기준 대상에 검색할 텍스트가 없습니다."
+    kk = max(1, min(k, 10))
+    # 여유있게 뽑아 자기 세션을 제외하고 상위 kk개.
+    hits = run_search(query_text, db, vi, _embedder(), k=kk * 4, keyword=True)
+    related = [h for h in hits if h.turn.session_id != exclude_session][:kk]
+    if not related:
+        return "비슷한 과거 대화를 찾지 못했습니다."
+    blocks = [f"'{target}'와(과) 비슷한 과거 대화 {len(related)}개 (자기 세션 제외)\n"]
+    for i, h in enumerate(related, 1):
+        blocks.append(_fmt_hit(i, h))
+    blocks.append("\n더 필요한 맥락이 있으면 get_session(session)으로 세션 전체를 열람하세요.")
     return "\n\n".join(blocks)
 
 
@@ -184,6 +227,17 @@ async def search_memory(query: str, k: int = 5, semantic_only: bool = False,
     각 결과에 session 값이 있으니, 더 자세한 맥락이 필요하면 get_session(session)으로 세션 전체를 열람하라.
     """
     return await _offload(_search_memory, query, k, semantic_only, since, until, source)
+
+
+@mcp.tool()
+async def find_related(session_or_turn_id: str, k: int = 5) -> str:
+    """주어진 세션 또는 턴과 '의미가 비슷한 과거 대화'를 by-example로 찾는다.
+
+    search_memory가 텍스트 질의라면, 이 도구는 특정 세션/턴을 기준으로 비슷한 과거 작업을
+    소환한다("전에 이거랑 비슷한 삽질/구현 한 적 있나"). session_or_turn_id: search_memory·
+    get_session 결과의 session 값(또는 턴 id). k: 결과 수(기본 5). 자기 자신 세션은 제외된다.
+    """
+    return await _offload(_find_related, session_or_turn_id, k)
 
 
 @mcp.tool()
