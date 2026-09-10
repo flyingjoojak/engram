@@ -208,6 +208,14 @@ class ArchiveDB:
         self.conn.close()
 
     # --- 턴 -------------------------------------------------------------
+    def turn_content_len(self, turn_id: str) -> int | None:
+        """저장된 턴의 내용 길이(질문+답변+행동 JSON 문자수). 없으면 None. 완성도 비교용."""
+        row = self.conn.execute(
+            "SELECT length(coalesce(question,''))+length(coalesce(answer,''))"
+            "+length(coalesce(actions,'')) AS n FROM turns WHERE id=?", (turn_id,),
+        ).fetchone()
+        return None if row is None else int(row["n"])
+
     def upsert_turn(self, turn: Turn, source: str = "claude-code",
                     source_file: str | None = None) -> bool:
         """턴 저장(멱등). **완성도 축소 금지**: 이미 저장된 턴이 더 완성(질문+답변+행동 길이가

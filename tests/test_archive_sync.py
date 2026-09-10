@@ -61,6 +61,42 @@ def test_import_skips_existing_and_own(tmp_path):
     assert A.import_archives(dst, proj, "devB") == 0
 
 
+def test_import_updates_local_with_fuller_peer_turn(tmp_path):
+    """superset-wins(#152): 로컬 미완성 턴을 더 완성된 상대 버전으로 갱신 + 청크 교체 + 스테일 벡터 제거."""
+    import numpy as np
+
+    from vestige.vectorindex import VectorIndex
+
+    proj = tmp_path / "projects"
+    proj.mkdir()
+
+    # 상대(src): 같은 turn id 인데 답변이 김 + 청크 2개.
+    src = ArchiveDB(tmp_path / "a.db")
+    src.upsert_turn(_turn("t1", "s1", "빌드 고쳐줘", "완성된 긴 답변입니다 도구 실행 결과 포함 상세"))
+    src.add_chunks([SimpleNamespace(turn_id="t1", index=0, text="완성된 긴 답변 앞"),
+                    SimpleNamespace(turn_id="t1", index=1, text="완성된 긴 답변 뒤")])
+    src.commit()
+    A.export_archive(src, proj, "devA")
+
+    # 로컬(dst): 같은 t1 인데 답변이 짧음 + 청크 1개 + 그 스테일 벡터.
+    dst = ArchiveDB(tmp_path / "b.db")
+    dst.upsert_turn(_turn("t1", "s1", "빌드 고쳐줘", "짧음"))
+    dst.add_chunks([SimpleNamespace(turn_id="t1", index=0, text="짧음")])
+    dst.commit()
+    vi = VectorIndex(tmp_path / "v.npy", tmp_path / "v.json")
+    vi.add(["t1#0"], np.ones((1, 4), dtype=np.float32))
+    assert len(vi) == 1
+
+    added = A.import_archives(dst, proj, "devB", vi=vi)
+    assert added == 1
+    assert dst.get_turn("t1").answer.startswith("완성된 긴 답변")          # 더 완성으로 갱신
+    assert dst.conn.execute("SELECT COUNT(*) FROM chunks WHERE turn_id='t1'").fetchone()[0] == 2  # 청크 교체
+    assert "t1#0" not in set(vi.keys())                                   # 스테일 벡터 제거 → backfill 재임베딩
+
+    # 재실행: 이제 로컬==상대 → 갱신 안 함(불필요 재작업 방지)
+    assert A.import_archives(dst, proj, "devB", vi=vi) == 0
+
+
 def test_import_no_dir(tmp_path):
     dst = ArchiveDB(tmp_path / "b.db")
     assert A.import_archives(dst, tmp_path / "nope", "devB") == 0

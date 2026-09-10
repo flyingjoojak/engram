@@ -68,8 +68,12 @@ def export_archive(db, projects_dir: str | Path, did: str) -> int:
     return n
 
 
-def import_archives(db, projects_dir: str | Path, my_did: str, log_fn=print) -> int:
-    """다른 기기 export 파일에서 로컬에 없는 턴/청크/정제를 삽입. 반환: 새로 들어온 턴 수.
+def import_archives(db, projects_dir: str | Path, my_did: str, *, vi=None, log_fn=print) -> int:
+    """다른 기기 export 파일에서 로컬에 없는(또는 더 완성된) 턴/청크/정제를 병합. 반환: 반영된 턴 수.
+
+    superset-wins: 이미 있는 턴도 상대가 더 완성이면 갱신한다. vi 를 넘기면 갱신된 턴의 스테일
+    벡터를 제거해 이어지는 backfill 이 재임베딩하게 한다(안 넘기면 청크/텍스트만 갱신, 벡터는
+    다음 스윕에서 정리).
 
     벡터는 넣지 않음 → 이후 증분 색인의 backfill이 활성 모델로 임베딩(chunk_count>len(vi)이 되므로).
     """
@@ -81,6 +85,7 @@ def import_archives(db, projects_dir: str | Path, my_did: str, log_fn=print) -> 
         return 0
     have = {row[0] for row in db.conn.execute("SELECT id FROM turns")}
     added = 0
+    removed_any = False
     for p in sorted(files):
         if p.stem == my_did:
             continue   # 내 export는 건너뜀
@@ -93,17 +98,31 @@ def import_archives(db, projects_dir: str | Path, my_did: str, log_fn=print) -> 
                     rec = json.loads(line)
                     t = rec["t"]
                     tid = t[0]
-                    if tid in have:
-                        continue
+                    existing = tid in have
+                    # superset-wins: 이미 있는 턴은 상대가 '더 완성'(질문+답변+행동 길이가 더 큼)
+                    # 일 때만 갱신. 동일/더 짧으면 유지(불필요 재작업·축소 방지).
+                    if existing:
+                        peer_n = len(t[6] or "") + len(t[7] or "") + len(t[8] or "")
+                        if peer_n <= (db.turn_content_len(tid) or 0):
+                            continue
                     turn = Turn(id=t[0], session_id=t[1], uuid=t[2], parent_uuid=t[3],
                                 timestamp=t[4], project=t[5], question=t[6], answer=t[7],
                                 actions=_actions_from_json(t[8]))
-                    db.upsert_turn(turn)               # FTS 포함
+                    db.upsert_turn(turn)               # FTS 포함(신규거나 더 완성 → 기록)
                     if t[9]:                            # summary → 정제도 함께 보존
                         db.set_enrichment(tid, t[9], json.loads(t[10]) if t[10] else [])
+                    if existing:
+                        # 갱신: 기존 청크·벡터를 상대 것으로 교체(누적/스테일 방지). 벡터는
+                        # vi.remove 로 무효화 → 이어지는 backfill 이 활성 모델로 재임베딩.
+                        old_keys = [r[0] for r in db.conn.execute(
+                            "SELECT chunk_key FROM chunks WHERE turn_id=?", (tid,))]
+                        db.conn.execute("DELETE FROM chunks WHERE turn_id=?", (tid,))
+                        if vi is not None and old_keys:
+                            vi.remove(old_keys)
+                            removed_any = True
                     for idx, text in rec.get("c", []):
                         db.conn.execute(
-                            "INSERT OR IGNORE INTO chunks(chunk_key,turn_id,idx,text) VALUES(?,?,?,?)",
+                            "INSERT OR REPLACE INTO chunks(chunk_key,turn_id,idx,text) VALUES(?,?,?,?)",
                             (f"{tid}#{idx}", tid, idx, text))
                     have.add(tid)
                     added += 1
@@ -111,4 +130,6 @@ def import_archives(db, projects_dir: str | Path, my_did: str, log_fn=print) -> 
             log_fn(f"아카이브 import 실패 {p.name}: {e}")
     if added:
         db.commit()
+    if removed_any and vi is not None:
+        vi.save()
     return added
