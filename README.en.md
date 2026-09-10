@@ -64,16 +64,24 @@ on your own machine, in the background, and lets you find any of them in a secon
 
 > **Platform status:** **Windows** and **macOS** are built and tested on real hardware. **Linux** builds are produced automatically but **haven't been tested on real hardware yet**, so it may not work smoothly. If something breaks, please [open an issue](https://github.com/flyingjoojak/vestige/issues) and I'll fix it.
 
-Builds land on the [**Releases**](https://github.com/flyingjoojak/vestige/releases) page.
+Installers land on the [**latest release**](https://github.com/flyingjoojak/vestige/releases/latest). The release page lists several files, but **you only need one installer for your OS**:
+
+| OS | Download |
+|----|----------|
+| 🪟 Windows | `Vestige-Setup-<version>.exe` |
+| 🍎 macOS | `Vestige-Setup-<version>.dmg` (or Homebrew below) |
+| 🐧 Linux | `Vestige-Setup-<version>.AppImage` |
+
+> The other files (`.blockmap`, `latest*.yml`) are **internal auto-update files** - you don't need to download them.
 
 ### 🪟 Windows - verified
 
-1. Download `Vestige-Setup-<version>.exe` and run it.
+1. Download `Vestige-Setup-<version>.exe` from the [latest release](https://github.com/flyingjoojak/vestige/releases/latest) and run it.
 2. If Windows shows a "protected your PC" warning, click **More info → Run anyway**. (It's just because the app isn't code-signed yet - it's safe.)
 
 ### 🍎 macOS (Apple Silicon)
 
-> v0.1.0 isn't code-signed yet, so **after installing, run the signing command below once** to make the app open. Without a signature, Apple Silicon blocks it as "damaged". Once the app ships signed in a later version, this step goes away.
+> The app isn't code-signed yet, so **after installing, run the signing command below once** to make it open. Without a signature, Apple Silicon blocks it as "damaged". Once the app ships signed ([#157](https://github.com/flyingjoojak/vestige/issues/157)), this step goes away.
 
 **1) Install - Homebrew (recommended)**
 
