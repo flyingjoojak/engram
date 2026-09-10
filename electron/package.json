@@ -19,16 +19,15 @@
   "build": {
     "appId": "com.vestige.app",
     "productName": "Vestige",
-    "artifactName": "${productName}-Setup-${version}.${ext}",
     "icon": "icon.png",
     "files": ["main.js", "preload.js", "loading.html", "icon.png"],
     "extraResources": [
       { "from": "../dist/vestige-backend", "to": "backend" }
     ],
-    "win": { "target": ["nsis"], "icon": "icon.png" },
+    "win": { "target": ["nsis"], "icon": "icon.png", "artifactName": "Vestige-${version}-Windows.${ext}" },
     "nsis": { "installerLanguages": ["en_US"], "include": "installer.nsh" },
-    "mac": { "target": "dmg", "category": "public.app-category.productivity", "icon": "icon.png" },
-    "linux": { "target": "AppImage", "category": "Utility", "icon": "icon.png" },
+    "mac": { "target": "dmg", "category": "public.app-category.productivity", "icon": "icon.png", "artifactName": "Vestige-${version}-macOS.${ext}" },
+    "linux": { "target": "AppImage", "category": "Utility", "icon": "icon.png", "artifactName": "Vestige-${version}-Linux.${ext}" },
     "publish": [
       { "provider": "github", "owner": "flyingjoojak", "repo": "vestige" }
     ]
