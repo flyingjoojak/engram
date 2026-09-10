@@ -6,13 +6,13 @@ import pytest
 
 pytest.importorskip("fastapi")  # 웹 전용 의존성 없으면 스킵
 
-from engram import web  # noqa: E402
+from vestige import web  # noqa: E402
 
 
 def test_index_html_fallback():
     # 빌드된 프론트가 없을 때 서빙되는 인라인 HTML 폴백 회귀 테스트.
     assert "<!doctype html>" in web._HTML.lower()
-    assert "Engram" in web._HTML
+    assert "Vestige" in web._HTML
 
 
 def test_index_returns_response():
@@ -29,19 +29,19 @@ def test_index_html_no_store():
 
 def test_config_put_rejects_invalid_index_values():
     # 잘못된 INDEX_MODE/INDEX_TIME은 저장(write_config) 전에 거부돼야 한다(조용히 스케줄 색인이 멈추지 않게).
-    r1 = web.api_config_put({"ENGRAM_INDEX_MODE": "bogus"})
+    r1 = web.api_config_put({"VESTIGE_INDEX_MODE": "bogus"})
     assert r1["ok"] is False and r1["code"] == "invalid_config_value"
-    assert "ENGRAM_INDEX_MODE" in r1["invalid"]
+    assert "VESTIGE_INDEX_MODE" in r1["invalid"]
 
-    r2 = web.api_config_put({"ENGRAM_INDEX_TIME": "25:99"})
-    assert r2["ok"] is False and "ENGRAM_INDEX_TIME" in r2["invalid"]
+    r2 = web.api_config_put({"VESTIGE_INDEX_TIME": "25:99"})
+    assert r2["ok"] is False and "VESTIGE_INDEX_TIME" in r2["invalid"]
 
-    r3 = web.api_config_put({"ENGRAM_INDEX_TIME": "9"})   # 콜론 없음
-    assert r3["ok"] is False and "ENGRAM_INDEX_TIME" in r3["invalid"]
+    r3 = web.api_config_put({"VESTIGE_INDEX_TIME": "9"})   # 콜론 없음
+    assert r3["ok"] is False and "VESTIGE_INDEX_TIME" in r3["invalid"]
 
 
 def test_hit_to_dict_shape():
-    from engram.models import Action, Turn
+    from vestige.models import Action, Turn
 
     t = Turn(id="s1:u1", session_id="s1abcdef", uuid="u1", parent_uuid=None,
              timestamp="2026-07-24T00:00:00Z", project="p", question="질문",
@@ -65,8 +65,8 @@ def test_hit_to_dict_shape():
 
 def test_api_sessions_aggregates_without_n_plus_1(tmp_path, monkeypatch):
     """세션 목록: 윈도우 함수 단일 쿼리로 세션별 턴수·대표 헤드라인·최근순 정렬을 올바로 산출(N+1 제거 후 형태 보존)."""
-    from engram.models import Turn
-    from engram.store import ArchiveDB
+    from vestige.models import Turn
+    from vestige.store import ArchiveDB
 
     def _t(tid, sid, ts, q):
         return Turn(id=tid, session_id=sid, uuid=tid, parent_uuid=None,
@@ -88,7 +88,7 @@ def test_api_sessions_aggregates_without_n_plus_1(tmp_path, monkeypatch):
 
 def test_safe_resume_cwd_rejects_unc_and_missing(tmp_path):
     """세션 로그의 cwd(신뢰 불가)에서 UNC/네트워크·디바이스·없는 경로를 거부(강제 NTLM 인증 등 차단)."""
-    from engram.web import _safe_resume_cwd
+    from vestige.web import _safe_resume_cwd
     # 거부돼야 하는 것들
     assert _safe_resume_cwd(r"\attacker.example.com\share") is None   # UNC
     assert _safe_resume_cwd("//attacker/share") is None                # UNC(슬래시)

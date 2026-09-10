@@ -7,7 +7,7 @@ name: codex-canary
 on:
   push:
     paths:
-      - "engram/sources/**"
+      - "vestige/sources/**"
       - "tests/test_codex_source.py"
       - "tests/test_sources.py"
       - "tests/test_codex_canary.py"
@@ -15,7 +15,7 @@ on:
       - ".github/workflows/codex-canary.yml"
   pull_request:
     paths:
-      - "engram/sources/**"
+      - "vestige/sources/**"
       - "tests/test_codex_source.py"
       - "tests/test_sources.py"
       - "tests/test_codex_canary.py"
@@ -72,7 +72,7 @@ jobs:
             "확인 절차:" \
             "1. codex 를 ${LATEST} 로 업데이트하고 짧은 세션 하나 실행" \
             "2. python scripts/codex_canary.py --local 로 드리프트 의심 여부 확인 (event_msg 는 있는데 턴 0개면 포맷 변경)" \
-            "3. 포맷이 바뀌었으면 engram/sources/codex.py 에 케이스 추가 + tests/test_codex_source.py 에 그 버전 골든 픽스처 추가" \
+            "3. 포맷이 바뀌었으면 vestige/sources/codex.py 에 케이스 추가 + tests/test_codex_source.py 에 그 버전 골든 픽스처 추가" \
             "4. 문제 없으면(또는 반영 후) scripts/codex_canary.py 의 TESTED_VERSION 을 ${LATEST} 로 올려 이 알림을 멈춤" \
             "" \
             "자동 생성: codex-canary 워크플로.")

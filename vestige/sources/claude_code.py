@@ -11,10 +11,10 @@ from ..models import Turn
 from ..parser import extract_turns as _extract_turns
 from ..parser import is_real_user_prompt, iter_json_lines
 
-# 색인·카운트 제외 폴더: Syncthing 버전 백업(.stversions), engram 아카이브 스냅샷
-# (신규 .engram-archive + 레거시 .chatmem-archive 둘 다 — 예전 스냅샷도 대화로 재색인되지 않게).
+# 색인·카운트 제외 폴더: Syncthing 버전 백업(.stversions), vestige 아카이브 스냅샷
+# (신규 .vestige-archive + 레거시 .chatmem-archive 둘 다 — 예전 스냅샷도 대화로 재색인되지 않게).
 # 버전 백업본은 기기마다 달라 세션 수를 부풀리고 중복을 만든다 → 걸러낸다.
-_SKIP_DIRS = {".stversions", ".chatmem-archive", ".engram-archive"}
+_SKIP_DIRS = {".stversions", ".chatmem-archive", ".vestige-archive"}
 
 
 class ClaudeCodeAdapter:

@@ -3,8 +3,8 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "engram"
-version = "0.1.0"
+name = "vestige"
+version = "0.2.0"
 description = "Claude Code 대화를 자동 누적해 의미 검색하는 개인 정보자산 검색창 (로컬 임베딩·하이브리드 검색)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -35,14 +35,15 @@ mcp = ["mcp>=1.2,<2"]                           # MCP 서버(외부 AI가 과거
 all = ["fastapi>=0.110", "uvicorn>=0.29", "pywebview>=5.0", "anthropic>=0.40", "openai>=1.40", "sqlite-vec>=0.1.6", "mcp>=1.2,<2", "umap-learn>=0.5", "scikit-learn>=1.3"]
 
 [project.urls]
-Repository = "https://github.com/flyingjoojak/engram"
+Repository = "https://github.com/flyingjoojak/vestige"
 
-# 기본 명령은 `engram`. `mem`은 짧은 별칭. `engram-mcp`는 MCP 서버 진입점.
+# 기본 명령은 `vestige`. `vst`는 짧은 별칭, `mem`은 하위호환 별칭. `vestige-mcp`는 MCP 서버 진입점.
 [project.scripts]
-engram = "engram.cli:main"
-engram-mcp = "engram.mcp_server:main"
-mem = "engram.cli:main"
+vestige = "vestige.cli:main"
+vst = "vestige.cli:main"
+vestige-mcp = "vestige.mcp_server:main"
+mem = "vestige.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["engram*"]
+include = ["vestige*"]
 exclude = ["tests*", "scripts*"]

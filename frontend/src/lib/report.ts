@@ -2,7 +2,7 @@ import type { SchemaReport } from "./api"
 
 // GitHub 이슈 URL(GET) 전체 쿼리 길이 예산. 넘으면 본문에 JSON 대신 '붙여넣기' 안내.
 const MAX_QUERY = 7000
-const DEFAULT_REPO = "flyingjoojak/engram"
+const DEFAULT_REPO = "flyingjoojak/vestige"
 const REPO_RE = /^[\w.-]+\/[\w.-]+$/
 
 function safeRepo(repo: string | undefined): string {
@@ -14,8 +14,8 @@ export function buildIssueUrl(report: SchemaReport, reportJson: string, copied: 
   const versions = (report.cli_versions ?? []).join(", ") || "?"
   const title = `[schema] ${report.source} 로그 포맷 확인 (${versions})`
   const head =
-    `Engram이 **${report.source}** 로그에서 ${report.drift_suspected ? "대화를 못 읽었어요(포맷 변경 의심)" : "포맷을 신고합니다"}.\n\n` +
-    `- Engram ${report.engram_version} · cli_versions: ${versions}\n\n`
+    `Vestige이 **${report.source}** 로그에서 ${report.drift_suspected ? "대화를 못 읽었어요(포맷 변경 의심)" : "포맷을 신고합니다"}.\n\n` +
+    `- Vestige ${report.vestige_version} · cli_versions: ${versions}\n\n`
   const withJson = head + "아래는 대화 내용이 제거된 구조 지문입니다:\n\n```json\n" + reportJson + "\n```\n"
   const encTitle = encodeURIComponent(title)
   const base = `https://github.com/${safeRepo(report.repo)}/issues/new`

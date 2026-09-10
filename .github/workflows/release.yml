@@ -52,7 +52,7 @@ jobs:
           npm --prefix frontend ci
           npm --prefix frontend run build
 
-      # PyInstaller onedir(engram-backend) + int8 e5-large 모델 생성·동봉 → dist/engram-backend/
+      # PyInstaller onedir(vestige-backend) + int8 e5-large 모델 생성·동봉 → dist/vestige-backend/
       - name: 백엔드 빌드(사이드카)
         shell: bash
         env:
@@ -66,15 +66,15 @@ jobs:
       - name: 백엔드 스모크(동결 사이드카 부팅 + API 응답)
         shell: bash
         env:
-          ENGRAM_MANAGED: "1"          # 순수 서버 모드(브라우저·단일인스턴스 로직 끔 — Electron 셸과 동일)
-          ENGRAM_DATA_DIR: ${{ runner.temp }}/smoke-data
+          VESTIGE_MANAGED: "1"          # 순수 서버 모드(브라우저·단일인스턴스 로직 끔 — Electron 셸과 동일)
+          VESTIGE_DATA_DIR: ${{ runner.temp }}/smoke-data
           CLAUDE_PROJECTS_DIR: ${{ runner.temp }}/smoke-proj
-          ENGRAM_SOURCES: "claude-code"
-          ENGRAM_INDEX_MODE: "off"
+          VESTIGE_SOURCES: "claude-code"
+          VESTIGE_INDEX_MODE: "off"
         run: |
           set -e
-          mkdir -p "$ENGRAM_DATA_DIR" "$CLAUDE_PROJECTS_DIR"
-          BIN="dist/engram-backend/engram-backend"
+          mkdir -p "$VESTIGE_DATA_DIR" "$CLAUDE_PROJECTS_DIR"
+          BIN="dist/vestige-backend/vestige-backend"
           if [ -f "$BIN.exe" ]; then BIN="$BIN.exe"; fi
           PORT=8799
           "$BIN" "$PORT" &
@@ -111,7 +111,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@v4
         with:
-          name: engram-installer-${{ matrix.os }}
+          name: vestige-installer-${{ matrix.os }}
           retention-days: 14
           if-no-files-found: warn
           path: |

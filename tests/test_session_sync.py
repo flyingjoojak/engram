@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from engram.session_sync import (
+from vestige.session_sync import (
     ConflictOutcome,
     base_for_conflict,
     classify,

@@ -1,6 +1,6 @@
 # Security Policy
 
-Engram runs entirely on your own machine, but it still has a real attack surface -
+Vestige runs entirely on your own machine, but it still has a real attack surface -
 a local HTTP server, endpoints that can launch OS processes, an optional peer-to-peer
 sync engine, and an auto-update mechanism. We take reports about these seriously.
 
@@ -20,7 +20,7 @@ reports are prioritized.
 
 ## In scope
 
-- The local API server (`engram web`) - CSRF / DNS-rebinding, request forgery, auth bypass.
+- The local API server (`vestige web`) - CSRF / DNS-rebinding, request forgery, auth bypass.
 - Command-executing endpoints (e.g. session resume, which spawns a terminal) - injection or path issues.
 - The MCP server exposing local conversation data.
 - Device sync (bundled Syncthing) and the SHA-256 verification of the downloaded binary.

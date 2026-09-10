@@ -1,6 +1,6 @@
 """드리프트 자동 감지(_update_drift): 새 데이터인데 0턴이면 감지, 턴 나오면 해제."""
-from engram import config, store
-from engram.indexer import _update_drift
+from vestige import config, store
+from vestige.indexer import _update_drift
 
 SID = "019e80dc-1754-7422-b72f-2d176635efb2"
 

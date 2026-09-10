@@ -2,26 +2,26 @@
 
 from __future__ import annotations
 
-from engram.config import _load_config_file
+from vestige.config import _load_config_file
 
 
 def test_load_sets_missing_keys(tmp_path, monkeypatch):
-    monkeypatch.delenv("ENGRAM_TEST_KEY", raising=False)
+    monkeypatch.delenv("VESTIGE_TEST_KEY", raising=False)
     f = tmp_path / "config.env"
-    f.write_text('ENGRAM_TEST_KEY=hello\n# 주석\n\nOTHER="quoted val"\n', encoding="utf-8")
+    f.write_text('VESTIGE_TEST_KEY=hello\n# 주석\n\nOTHER="quoted val"\n', encoding="utf-8")
     _load_config_file(f)
     import os
-    assert os.environ["ENGRAM_TEST_KEY"] == "hello"
+    assert os.environ["VESTIGE_TEST_KEY"] == "hello"
     assert os.environ["OTHER"] == "quoted val"
 
 
 def test_real_env_wins(tmp_path, monkeypatch):
-    monkeypatch.setenv("ENGRAM_TEST_KEY2", "from-env")
+    monkeypatch.setenv("VESTIGE_TEST_KEY2", "from-env")
     f = tmp_path / "config.env"
-    f.write_text("ENGRAM_TEST_KEY2=from-file\n", encoding="utf-8")
+    f.write_text("VESTIGE_TEST_KEY2=from-file\n", encoding="utf-8")
     _load_config_file(f)
     import os
-    assert os.environ["ENGRAM_TEST_KEY2"] == "from-env"  # setdefault → 환경변수 우선
+    assert os.environ["VESTIGE_TEST_KEY2"] == "from-env"  # setdefault → 환경변수 우선
 
 
 def test_missing_file_is_noop(tmp_path):
@@ -29,21 +29,21 @@ def test_missing_file_is_noop(tmp_path):
 
 
 def test_write_config_creates_and_updates(tmp_path, monkeypatch):
-    from engram import config as C
+    from vestige import config as C
     f = tmp_path / "config.env"
     monkeypatch.setattr(C, "CONFIG_PATH", f)
 
-    C.write_config({"ENGRAM_ENRICH_BACKEND": "openai", "OPENAI_API_KEY": "sk-x"})
+    C.write_config({"VESTIGE_ENRICH_BACKEND": "openai", "OPENAI_API_KEY": "sk-x"})
     body = f.read_text(encoding="utf-8")
-    assert "ENGRAM_ENRICH_BACKEND=openai" in body
+    assert "VESTIGE_ENRICH_BACKEND=openai" in body
     assert "OPENAI_API_KEY=sk-x" in body
 
     # 기존 값 교체 + 주석/기타 줄 보존
-    f.write_text("# 내 메모\nENGRAM_ENRICH_BACKEND=openai\nFOO=bar\n", encoding="utf-8")
-    C.write_config({"ENGRAM_ENRICH_BACKEND": "gemini"})
+    f.write_text("# 내 메모\nVESTIGE_ENRICH_BACKEND=openai\nFOO=bar\n", encoding="utf-8")
+    C.write_config({"VESTIGE_ENRICH_BACKEND": "gemini"})
     body = f.read_text(encoding="utf-8")
     assert "# 내 메모" in body and "FOO=bar" in body
-    assert "ENGRAM_ENRICH_BACKEND=gemini" in body
+    assert "VESTIGE_ENRICH_BACKEND=gemini" in body
     assert "openai" not in body  # 이전 값 사라짐
 
     # 빈 값 = 비활성(주석 처리)

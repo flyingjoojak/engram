@@ -77,7 +77,7 @@ def remote_check() -> int:
 
 def local_check(root: str | Path | None = None) -> int:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from engram.sources.codex import CodexAdapter
+    from vestige.sources.codex import CodexAdapter
 
     root = Path(root) if root else (Path.home() / ".codex" / "sessions")
     if not root.exists():

@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 
 # promptSource="sdk" = 프로그램 구동(claude -p 자동화일 수도, 정식 SDK/통합 사용일 수도 있음).
 # 기본은 '제외'(대다수는 버릴 자동화). 한 번 색인되면 (휴지통 기능 전까지) 되돌릴 수 없어,
-# 손실 없는 쪽을 기본으로 둔다. SDK/통합으로 실제 작업하는 사람은 ENGRAM_SKIP_SDK_SESSIONS=0 로 끈다.
+# 손실 없는 쪽을 기본으로 둔다. SDK/통합으로 실제 작업하는 사람은 VESTIGE_SKIP_SDK_SESSIONS=0 로 끈다.
 # (system=<task-notification> 등 주입 프롬프트는 promptSource 가 아니라 기존 plumbing/isMeta 필터가 처리한다.)
-_SKIP_SDK_ENV = "ENGRAM_SKIP_SDK_SESSIONS"
+_SKIP_SDK_ENV = "VESTIGE_SKIP_SDK_SESSIONS"
 
 # 대화가 아닌 메타/시스템 라인 타입.
 _STRUCTURAL_TYPES = {
@@ -123,7 +123,7 @@ def _is_plumbing(text: str) -> bool:
 def skip_sdk_enabled() -> bool:
     """자동화(promptSource="sdk") 세션 제외 여부. 기본 켜짐.
 
-    끄려면 ENGRAM_SKIP_SDK_SESSIONS=0(false/no/off). 그 외(미설정 포함)는 제외 켜짐.
+    끄려면 VESTIGE_SKIP_SDK_SESSIONS=0(false/no/off). 그 외(미설정 포함)는 제외 켜짐.
     """
     return os.environ.get(_SKIP_SDK_ENV, "").strip().lower() not in ("0", "false", "no", "off")
 
@@ -132,7 +132,7 @@ def _is_skipped_sdk_prompt(obj: dict) -> bool:
     """기본 켜짐: promptSource="sdk"(claude -p 등 자동화) 프롬프트를 제외한다.
 
     한 번 색인하면 휴지통 기능 전까지 못 지우므로, 손실 없는 쪽(제외)을 기본으로 둔다.
-    SDK/통합으로 실제 작업하는 사람은 ENGRAM_SKIP_SDK_SESSIONS=0 으로 끈다.
+    SDK/통합으로 실제 작업하는 사람은 VESTIGE_SKIP_SDK_SESSIONS=0 으로 끈다.
     """
     if not skip_sdk_enabled():
         return False

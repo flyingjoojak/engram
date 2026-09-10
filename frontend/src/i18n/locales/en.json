@@ -284,7 +284,7 @@
   },
   "onboarding": {
     "title": "Choose an embedding model",
-    "desc": "To search your conversations by meaning, Engram needs an embedding model. Pick the one that <b>fits your device</b> - indexing starts right away. You can change this later in settings, though switching models triggers a full re-index.",
+    "desc": "To search your conversations by meaning, Vestige needs an embedding model. Pick the one that <b>fits your device</b> - indexing starts right away. You can change this later in settings, though switching models triggers a full re-index.",
     "errorTitle": "Couldn't load the model list",
     "errorDetail": "The app may still be starting up. Please try again in a moment.",
     "pickFailed": "Couldn't select that model. Please try again.",
@@ -406,7 +406,7 @@
     "mergeImported": "✓ Imported {{count}} conversation(s) from other devices - indexing starts shortly.",
     "mergeUpToDate": "Already up to date - nothing new to import",
     "mergeFailed": "Merge failed",
-    "mergeHelp": "Claude Code deletes conversation logs after about 30 days, but Engram keeps a copy on each device. This merge <b>pulls in older conversations preserved on your other devices</b> so your search history stays complete (connected devices do this automatically). Sessions whose original logs were deleted can't be resumed, but remain <b>searchable and viewable</b>."
+    "mergeHelp": "Claude Code deletes conversation logs after about 30 days, but Vestige keeps a copy on each device. This merge <b>pulls in older conversations preserved on your other devices</b> so your search history stays complete (connected devices do this automatically). Sessions whose original logs were deleted can't be resumed, but remain <b>searchable and viewable</b>."
   },
   "error": {
     "viewCrashed": "Something went wrong on this screen"
@@ -430,7 +430,7 @@
   },
   "errors": {
     "generic": "Something went wrong.",
-    "csrf_blocked": "Blocked a request from outside the app for security reasons. Please use Engram directly.",
+    "csrf_blocked": "Blocked a request from outside the app for security reasons. Please use Vestige directly.",
     "no_embed_model": "Choose an embedding model first.",
     "unknown_source": "Unknown source.",
     "invalid_session_id": "Invalid session ID.",

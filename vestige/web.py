@@ -4,7 +4,7 @@
 - DB·벡터 인덱스는 요청마다 새로 열어 최신 데이터 반영 + 스레드 안전.
 - 코어 라이브러리(search/store/vectorindex/embedder)를 그대로 재사용.
 
-실행: python -m engram.web  → http://127.0.0.1:8642
+실행: python -m vestige.web  → http://127.0.0.1:8642
 """
 
 from __future__ import annotations
@@ -117,7 +117,7 @@ def _run_incremental(quick: bool = False) -> bool:
             if not sweep_due and not (has_new_data(db) and heavy_due):
                 _autoindex_state.update(running=False, phase="새 대화 없음")
                 return True
-        # 크로스-프로세스 상호배제: OS 스케줄러가 띄운 별도 `engram index` 프로세스와 동시에
+        # 크로스-프로세스 상호배제: OS 스케줄러가 띄운 별도 `vestige index` 프로세스와 동시에
         # 같은 archive.db 를 색인하지 않게. 다른 프로세스가 색인 중이면 이번 회차는 건너뛴다.
         from .proclock import IndexLock
         _xlock = IndexLock()
@@ -255,9 +255,9 @@ async def _lifespan(app: FastAPI):
                 last_run = time.time()
             time.sleep(10 if mode == "realtime" else 20)
 
-    # OS 스케줄러(engram setup이 등록한 engram-index)와 이중 색인 방지:
+    # OS 스케줄러(vestige setup이 등록한 vestige-index)와 이중 색인 방지:
     #   - frozen(패키지 데스크톱 앱): OS 스케줄러 없음 → 웹앱이 자체 색인(INDEX_MODE 제어)
-    #   - pip + `engram setup`(OS 색인 태스크 등록됨): 그쪽이 색인 담당 → 인프로세스 루프 끔
+    #   - pip + `vestige setup`(OS 색인 태스크 등록됨): 그쪽이 색인 담당 → 인프로세스 루프 끔
     #   - dev / --no-scheduler(OS 태스크 없음): 인프로세스 루프가 담당(INDEX_MODE 제어)
     # 판정은 시작 시 1회만(태스크 조회 subprocess 1회) — 매 틱 비용 없음.
     _self_index = getattr(_sys, "frozen", False)
@@ -312,7 +312,7 @@ async def _lifespan(app: FastAPI):
     _state.clear()
 
 
-app = FastAPI(lifespan=_lifespan, title="Engram")
+app = FastAPI(lifespan=_lifespan, title="Vestige")
 
 
 # ── CSRF 보호(Fetch Metadata resource isolation) ──────────────────────────
@@ -907,7 +907,7 @@ def _st_start_bg(persist: bool = True) -> None:
             _st["inst"] = inst
             inst.start(log_fn=lambda m: _st_state.__setitem__("phase", m))
             if inst.wait_ready():
-                # rename(chatmem→engram) 잔재 폴더 정리 — 같은 경로 중복 폴더가 있으면 동기화가
+                # rename(chatmem→vestige) 잔재 폴더 정리 — 같은 경로 중복 폴더가 있으면 동기화가
                 # 0%에서 막히므로, REST 준비된 직후 새 폴더로 이관 후 옛 폴더 제거(자가복구·신규는 no-op).
                 from . import config as C
                 with contextlib.suppress(Exception):
@@ -1037,7 +1037,7 @@ def api_config():
         "config_path": str(C.CONFIG_PATH),
         # claude CLI 경로: 사용자가 지정한 override(있으면) + 실제 해석된 경로/발견 여부.
         # macOS GUI 앱은 셸 PATH 미상속이라 여기서 직접 지정할 수 있게 노출한다.
-        "claude_bin": os.environ.get("ENGRAM_CLAUDE_BIN", ""),
+        "claude_bin": os.environ.get("VESTIGE_CLAUDE_BIN", ""),
         "claude_resolved": _claude or "",
         "claude_found": _claude is not None,
         # Claude Code 로그 소스 — 각 사용자 홈 기준 자동 해석, 필요 시 직접 지정.
@@ -1066,7 +1066,7 @@ def api_skip_sdk_stats():
 def api_config_put(payload: dict):
     """설정 저장: config.env 갱신 + 실행 중 프로세스 반영 + 필요 시 스케줄러 재등록.
 
-    payload = {"ENGRAM_ENRICH_BACKEND": "...", "OPENAI_API_KEY": "...", ...}
+    payload = {"VESTIGE_ENRICH_BACKEND": "...", "OPENAI_API_KEY": "...", ...}
     빈 문자열 값은 해당 키 비활성(주석).
     """
     import importlib
@@ -1074,35 +1074,35 @@ def api_config_put(payload: dict):
 
     from . import config as C
 
-    # 화이트리스트: ENGRAM_* 설정 + 알려진 키/경로만 허용(임의 env 주입 차단).
+    # 화이트리스트: VESTIGE_* 설정 + 알려진 키/경로만 허용(임의 env 주입 차단).
     _allowed_exact = {"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
                       "GOOGLE_API_KEY", "CLAUDE_PROJECTS_DIR", "CODEX_SESSIONS_DIR"}
     # 레거시 back-compat: 이름 변경 전 프론트(캐시된 빌드)가 보낸 구 CHATMEM_ 키를
-    # 신규 ENGRAM_ 로 정규화 → 화이트리스트·검증·저장이 모두 신규 키로 일관되게 처리.
+    # 신규 VESTIGE_ 로 정규화 → 화이트리스트·검증·저장이 모두 신규 키로 일관되게 처리.
     raw: dict[str, str] = {}
     for k, v in (payload or {}).items():
         k = str(k)
         if k.startswith("CHATMEM_"):
-            k = "ENGRAM_" + k[len("CHATMEM_"):]
+            k = "VESTIGE_" + k[len("CHATMEM_"):]
         raw[k] = str(v)
-    updates = {k: v for k, v in raw.items() if k.startswith("ENGRAM_") or k in _allowed_exact}
+    updates = {k: v for k, v in raw.items() if k.startswith("VESTIGE_") or k in _allowed_exact}
     rejected = [k for k in raw if k not in updates]
     if not updates:
         return {"ok": True, "changed": [], "rejected": rejected}
 
     # 값 검증: 잘못된 INDEX_MODE/INDEX_TIME이 조용히 스케줄 색인을 영영 멈추지 않게 저장 전에 거른다.
     invalid: list[str] = []
-    _mode = updates.get("ENGRAM_INDEX_MODE")
+    _mode = updates.get("VESTIGE_INDEX_MODE")
     if _mode not in (None, "") and _mode not in {"off", "interval", "realtime", "scheduled"}:
-        invalid.append("ENGRAM_INDEX_MODE")
-    _time = updates.get("ENGRAM_INDEX_TIME")
+        invalid.append("VESTIGE_INDEX_MODE")
+    _time = updates.get("VESTIGE_INDEX_TIME")
     if _time not in (None, ""):
         try:
             _h, _m = str(_time).split(":")
             if not (0 <= int(_h) <= 23 and 0 <= int(_m) <= 59):
-                invalid.append("ENGRAM_INDEX_TIME")
+                invalid.append("VESTIGE_INDEX_TIME")
         except (ValueError, AttributeError):
-            invalid.append("ENGRAM_INDEX_TIME")
+            invalid.append("VESTIGE_INDEX_TIME")
     if invalid:
         return {"ok": False, "code": "invalid_config_value", "invalid": invalid, "rejected": rejected}
 
@@ -1115,7 +1115,7 @@ def api_config_put(payload: dict):
     importlib.reload(C)                            # 3) config 모듈 재평가(새 env 반영)
 
     # 4) 스케줄 관련 키가 바뀌면 스케줄러 재등록
-    timing_keys = {"ENGRAM_ENRICH_TIME", "ENGRAM_INDEX_INTERVAL"}
+    timing_keys = {"VESTIGE_ENRICH_TIME", "VESTIGE_INDEX_INTERVAL"}
     rescheduled = False
     if timing_keys & set(updates):
         try:
@@ -1273,11 +1273,11 @@ def _sources_info_cached() -> list:
 def api_index_status():
     """증분 색인(자동/수동) 상태 + 대기(새 대화) 집계 — UI 표시용.
 
-    이 프로세스가 색인 중이 아니면, 별도 프로세스(OS 스케줄러의 `engram index`)가 색인 중인지
+    이 프로세스가 색인 중이 아니면, 별도 프로세스(OS 스케줄러의 `vestige index`)가 색인 중인지
     크로스-프로세스 락으로 확인해 running/external 에 반영한다(배너·설정 버튼 상태 일관성)."""
     st = dict(_autoindex_state)
     external = False
-    # 외부(OS 스케줄러의 별도 engram index) 색인은 이 프로세스가 idle 이고, 인-프로세스 자동색인이
+    # 외부(OS 스케줄러의 별도 vestige index) 색인은 이 프로세스가 idle 이고, 인-프로세스 자동색인이
     # 담당자가 아닐 때(enabled=False = 스케줄러/off 모드)만 의미가 있다. interval/realtime 은 이
     # 프로세스가 색인하므로 매 폴링마다 락 파일 검사(파일열기+락+쓰기)를 돌릴 필요가 없다.
     if not (_autoindex_state.get("running") or _reindex_state.get("running")
@@ -1403,7 +1403,7 @@ def api_mcp():
 
 @app.post("/api/mcp/register")
 def api_mcp_register(payload: dict):
-    """대상 클라이언트 설정에 engram MCP 서버 등록(파일은 .bak 백업 후 수정)."""
+    """대상 클라이언트 설정에 vestige MCP 서버 등록(파일은 .bak 백업 후 수정)."""
     from . import mcp_register as R
     tid = str((payload or {}).get("target", "")).strip()
     try:
@@ -1482,7 +1482,7 @@ def api_onboarding_choose(payload: dict):
     model = str((payload or {}).get("model", "")).strip()
     if model not in _EMBED_ALLOW:
         return {"ok": False, "error": "알 수 없는 모델", "code": "unknown_model"}
-    C.write_config({"ENGRAM_EMBED_MODEL": model})
+    C.write_config({"VESTIGE_EMBED_MODEL": model})
 
     def _load():
         with contextlib.suppress(Exception):
@@ -1532,7 +1532,7 @@ def api_reindex(payload: dict):
         _reindex_state.update(running=True, done=0, msg="시작", done_files=0, total_files=0,
                               done_chunks=0, total_chunks=0)
         try:
-            C.write_config({"ENGRAM_EMBED_MODEL": model})
+            C.write_config({"VESTIGE_EMBED_MODEL": model})
             # 모델 교체든 현재모델 재색인이든, 기존 벡터 폐기 후 처음부터 재임베딩(백엔드 무관 reset).
             db = ArchiveDB()
             total_chunks = db.conn.execute("SELECT COUNT(*) c FROM chunks").fetchone()["c"]
@@ -1708,7 +1708,7 @@ _HTML = r"""<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Engram</title>
+<title>Vestige</title>
 <style>
 :root{
   --bg:#f5f6f8; --surface:#ffffff; --surface2:#eef0f4; --border:#e3e5ea;
@@ -1872,7 +1872,7 @@ kbd{background:var(--surface2);border:1px solid var(--border);border-radius:5px;
 <body>
 <div class="wrap">
   <header class="appbar">
-    <div class="brand"><span class="logo">E</span><h1>Engram</h1></div>
+    <div class="brand"><span class="logo">E</span><h1>Vestige</h1></div>
     <div class="bar-right">
       <span class="stats" id="stats"></span>
       <button id="themeBtn" class="icon-btn" aria-label="라이트/다크 테마 전환" title="테마 전환">◐</button>
@@ -2051,7 +2051,7 @@ if (_DIST / "assets").exists():
 def main() -> None:
     import uvicorn
 
-    print("Engram 웹 UI → http://127.0.0.1:8642  (모델 로딩 ~15초)")
+    print("Vestige 웹 UI → http://127.0.0.1:8642  (모델 로딩 ~15초)")
     uvicorn.run(app, host="127.0.0.1", port=8642, log_level="warning")
 
 

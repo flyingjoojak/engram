@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-from engram.sources.subagent import SubagentAdapter, _strip_wrapper
+from vestige.sources.subagent import SubagentAdapter, _strip_wrapper
 
 PARENT = "4a545a78-parent-session"
 AID = "a461background00"

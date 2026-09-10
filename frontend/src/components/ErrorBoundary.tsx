@@ -14,7 +14,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: unknown) {
     // 콘솔에도 남겨 진단 가능하게.
-    console.error("[Engram] view crashed:", error, info)
+    console.error("[Vestige] view crashed:", error, info)
   }
 
   reset = () => this.setState({ error: null })

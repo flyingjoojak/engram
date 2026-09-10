@@ -33,7 +33,7 @@ from ..parser import iter_json_lines
 logger = logging.getLogger(__name__)
 
 # 버전 백업/아카이브 폴더 제외(Claude Code 어댑터와 동일 정책).
-_SKIP_DIRS = {".stversions", ".chatmem-archive", ".engram-archive"}
+_SKIP_DIRS = {".stversions", ".chatmem-archive", ".vestige-archive"}
 
 # 파일명 rollout-<ISO>-<uuid>.jsonl 의 세션 UUID(8-4-4-4-12) 추출.
 _UUID_RE = re.compile(

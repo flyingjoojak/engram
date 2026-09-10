@@ -145,7 +145,7 @@ export interface IndexStatus {
   last_error: string | null
   errors?: string[]      // 이번 회차 항목별(파일) 실패 — 조용한 스턱 방지
   pending?: IndexPending   // 새 바이트가 있는 로그 파일(=대화) 집계
-  external?: boolean       // 다른 프로세스(OS 스케줄러의 engram index)가 색인 중
+  external?: boolean       // 다른 프로세스(OS 스케줄러의 vestige index)가 색인 중
 }
 export const getIndexStatus = () => getJSON<IndexStatus>(`/api/index/status`)
 
@@ -363,7 +363,7 @@ export async function reindex(
 export type SchemaSource = "codex" | "claude-code"
 export interface SchemaReport {
   source: string
-  engram_version: string
+  vestige_version: string
   repo: string
   error?: string
   root?: string | null

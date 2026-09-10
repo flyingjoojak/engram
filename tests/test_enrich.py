@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import engram.enrich as enrich
-from engram.enrich import _build_prompt, _parse_json, resolve_claude_bin
-from engram.models import Turn
+import vestige.enrich as enrich
+from vestige.enrich import _build_prompt, _parse_json, resolve_claude_bin
+from vestige.models import Turn
 
 
 def _turn(tid, q="질문", a="답변"):
@@ -43,7 +43,7 @@ def test_build_prompt_contains_ids_and_content():
 
 # --- 백엔드 플러그블 ----------------------------------------------------
 def test_resolve_model_defaults():
-    from engram.enrich import _resolve_model
+    from vestige.enrich import _resolve_model
     assert _resolve_model("claude", None) == "sonnet"
     assert _resolve_model("anthropic", None) == "claude-sonnet-5"
     assert _resolve_model("openai", None) == "gpt-4o-mini"
@@ -53,7 +53,7 @@ def test_resolve_model_defaults():
 
 
 def test_backend_available_off():
-    from engram.enrich import backend_available
+    from vestige.enrich import backend_available
     ok, why = backend_available("off")
     assert ok is False
     assert "off" in why.lower()
@@ -61,7 +61,7 @@ def test_backend_available_off():
 
 def test_generate_dispatch(monkeypatch):
     import pytest
-    from engram import enrich
+    from vestige import enrich
     monkeypatch.setattr(enrich, "_call_claude_cli", lambda p, m, **k: f"cli:{m}")
     monkeypatch.setattr(enrich, "_call_anthropic_api", lambda p, m, **k: f"api:{m}")
     monkeypatch.setattr(enrich, "_call_openai_compatible",
@@ -81,7 +81,7 @@ def test_generate_dispatch(monkeypatch):
 def test_resolve_claude_bin_prefers_env_override(monkeypatch, tmp_path):
     fake = tmp_path / "claude"
     fake.write_text("#!/bin/sh\n")
-    monkeypatch.setenv("ENGRAM_CLAUDE_BIN", str(fake))
+    monkeypatch.setenv("VESTIGE_CLAUDE_BIN", str(fake))
     # PATH/표준경로를 못 찾게 막아도 override 가 우선.
     monkeypatch.setattr(enrich.shutil, "which", lambda _n: None)
     monkeypatch.setattr(enrich, "_claude_search_dirs", lambda: [])
@@ -89,14 +89,14 @@ def test_resolve_claude_bin_prefers_env_override(monkeypatch, tmp_path):
 
 
 def test_resolve_claude_bin_falls_back_to_path(monkeypatch):
-    monkeypatch.delenv("ENGRAM_CLAUDE_BIN", raising=False)
+    monkeypatch.delenv("VESTIGE_CLAUDE_BIN", raising=False)
     monkeypatch.setattr(enrich.shutil, "which", lambda n: "/usr/bin/claude" if n == "claude" else None)
     assert resolve_claude_bin() == "/usr/bin/claude"
 
 
 def test_resolve_claude_bin_scans_standard_dirs_when_path_misses(monkeypatch, tmp_path):
     # GUI 앱: PATH 에 없지만 표준 설치 위치(예: /opt/homebrew/bin)에 있으면 찾아야 한다.
-    monkeypatch.delenv("ENGRAM_CLAUDE_BIN", raising=False)
+    monkeypatch.delenv("VESTIGE_CLAUDE_BIN", raising=False)
     monkeypatch.setattr(enrich.shutil, "which", lambda _n: None)   # PATH 미상속 흉내
     brew = tmp_path / "opt_homebrew_bin"
     brew.mkdir()
@@ -107,7 +107,7 @@ def test_resolve_claude_bin_scans_standard_dirs_when_path_misses(monkeypatch, tm
 
 
 def test_resolve_claude_bin_none_when_absent(monkeypatch):
-    monkeypatch.delenv("ENGRAM_CLAUDE_BIN", raising=False)
+    monkeypatch.delenv("VESTIGE_CLAUDE_BIN", raising=False)
     monkeypatch.setattr(enrich.shutil, "which", lambda _n: None)
     monkeypatch.setattr(enrich, "_claude_search_dirs", lambda: [])
     assert resolve_claude_bin() is None

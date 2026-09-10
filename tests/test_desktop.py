@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import socket
 
-from engram import desktop
+from vestige import desktop
 
 
 def test_free_port_prefers_given_when_available():

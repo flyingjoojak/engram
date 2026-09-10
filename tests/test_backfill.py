@@ -6,7 +6,7 @@ import sqlite3
 
 import numpy as np
 
-from engram.indexer import backfill_missing
+from vestige.indexer import backfill_missing
 
 
 class _FakeVI:

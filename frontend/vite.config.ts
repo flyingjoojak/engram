@@ -10,7 +10,7 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "./src") },
   },
   server: {
-    // 개발 중 FastAPI 백엔드로 프록시(python -m engram.web = 127.0.0.1:8642)
+    // 개발 중 FastAPI 백엔드로 프록시(python -m vestige.web = 127.0.0.1:8642)
     proxy: { "/api": "http://127.0.0.1:8642" },
   },
 })

@@ -8,7 +8,7 @@ import pytest
 
 pytest.importorskip("mcp")
 
-from engram import mcp_server as M  # noqa: E402
+from vestige import mcp_server as M  # noqa: E402
 
 
 def test_tools_registered():

@@ -7,7 +7,7 @@
 임베딩 모델은 서버 시작 시 로드(~15초)되며, 그동안 창은 즉시 열리고
 검색은 "모델 로딩 중"으로 대기하다 준비되면 동작한다.
 
-실행:  engram app   (또는 python -m engram.desktop)
+실행:  vestige app   (또는 python -m vestige.desktop)
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import threading
 import time
 
 DEFAULT_PORT = 8642
-WIN_TITLE = "Engram"
+WIN_TITLE = "Vestige"
 
 
 def _free_port(preferred: int = DEFAULT_PORT) -> int:

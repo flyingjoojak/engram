@@ -44,16 +44,16 @@ def _claude_search_dirs() -> list[str]:
 
 
 def resolve_claude_bin() -> str | None:
-    """claude 실행파일 경로 해석: (1) ENGRAM_CLAUDE_BIN 명시 → (2) PATH → (3) 표준 설치 위치.
+    """claude 실행파일 경로 해석: (1) VESTIGE_CLAUDE_BIN 명시 → (2) PATH → (3) 표준 설치 위치.
 
     반환은 실행 가능한 절대/명령 경로, 못 찾으면 None. 설정 즉시 반영을 위해 호출 시점에 조회한다.
     """
-    override = os.environ.get("ENGRAM_CLAUDE_BIN", "").strip()
+    override = os.environ.get("VESTIGE_CLAUDE_BIN", "").strip()
     if override:
         # 파일 경로면 존재 확인, 아니면 PATH 에서 그 이름을 찾음(둘 다 허용).
         if Path(override).is_file() or shutil.which(override):
             return override
-        logger.warning("ENGRAM_CLAUDE_BIN=%r 를 찾을 수 없음 → 자동 탐색으로 폴백", override)
+        logger.warning("VESTIGE_CLAUDE_BIN=%r 를 찾을 수 없음 → 자동 탐색으로 폴백", override)
     found = shutil.which("claude")            # 터미널/개발 실행은 보통 여기서 잡힘
     if found:
         return found
@@ -97,7 +97,7 @@ def _build_prompt(turns: list[Turn]) -> str:
     head = [
         # sentinel: claude -p 는 세션 로그를 남기므로 이 프롬프트가 새 세션으로 기록된다.
         # 파서가 이 접두를 보고 인덱싱에서 제외한다(자기오염 방지).
-        "<<CHATMEM-ENRICH>> engram enrichment task (auto-generated — excluded from indexing).",
+        "<<CHATMEM-ENRICH>> vestige enrichment task (auto-generated — excluded from indexing).",
         "Below are the conversation turns of one AI coding session.",
         "For each turn, produce a one-line summary and 2-4 tags.",
         # 출력 언어를 UI가 아니라 '대화 언어'에 맞춘다 → 한국어 대화는 한국어, 영어 대화는 영어 요약.
@@ -125,7 +125,7 @@ def _call_claude_cli(prompt: str, model: str, timeout: int = 240) -> str:
     bin_path = resolve_claude_bin()
     if not bin_path:
         raise RuntimeError(
-            "claude CLI 를 찾을 수 없습니다 — Claude Code 설치, 또는 ENGRAM_CLAUDE_BIN 로 경로 지정")
+            "claude CLI 를 찾을 수 없습니다 — Claude Code 설치, 또는 VESTIGE_CLAUDE_BIN 로 경로 지정")
     r = subprocess.run(
         [bin_path, "-p", prompt, "--model", model],
         capture_output=True, text=True, encoding="utf-8", timeout=timeout,
@@ -211,7 +211,7 @@ def verify_backend(backend: str, model: str | None = None, api_key: str | None =
         return True, "정제 안 함"
     if backend == "claude":
         if resolve_claude_bin() is None:
-            return False, "claude CLI 없음 (Claude Code 설치, 또는 ENGRAM_CLAUDE_BIN 로 경로 지정)"
+            return False, "claude CLI 없음 (Claude Code 설치, 또는 VESTIGE_CLAUDE_BIN 로 경로 지정)"
         return True, "claude CLI 확인됨"
     if backend == "anthropic":
         try:
@@ -252,8 +252,8 @@ def backend_available(backend: str) -> tuple[bool, str]:
         return False, "정제 비활성화(off)"
     if backend == "claude":
         if resolve_claude_bin() is None:
-            return False, ("claude CLI 없음 — Claude Code 설치, ENGRAM_CLAUDE_BIN 로 경로 지정, "
-                           "또는 ENGRAM_ENRICH_BACKEND=anthropic")
+            return False, ("claude CLI 없음 — Claude Code 설치, VESTIGE_CLAUDE_BIN 로 경로 지정, "
+                           "또는 VESTIGE_ENRICH_BACKEND=anthropic")
         return True, ""
     if backend == "anthropic":
         try:

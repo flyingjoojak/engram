@@ -13,7 +13,7 @@ for _s in (sys.stdout, sys.stderr):
     except Exception:  # noqa: BLE001 — 재설정 불가 환경은 무시
         pass
 
-from engram.int8_model import generate_int8_dir
+from vestige.int8_model import generate_int8_dir
 
 dst = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("packaging/build/e5int8")
 generate_int8_dir(dst)

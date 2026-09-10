@@ -194,7 +194,7 @@ def cmd_config(args: argparse.Namespace) -> int:
     print(f"데이터 경로: {C.DATA_DIR}")
     print(f"로그 소스: {C.PROJECTS_DIR}")
     print("--- 정제 백엔드 ---")
-    print(f"ENGRAM_ENRICH_BACKEND = {C.ENRICH_BACKEND}")
+    print(f"VESTIGE_ENRICH_BACKEND = {C.ENRICH_BACKEND}")
     print(f"  claude 모델   = {C.ENRICH_CLI_MODEL}")
     print(f"  anthropic 모델 = {C.ENRICH_API_MODEL}")
     print(f"  openai 모델   = {C.ENRICH_OPENAI_MODEL}")
@@ -205,7 +205,7 @@ def cmd_config(args: argparse.Namespace) -> int:
     for key in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"):
         print(f"  {key}: {'설정됨' if os.environ.get(key) else '없음'}")
     print("--- 임베딩 ---")
-    print(f"ENGRAM_EMBED_MODEL = {C.EMBED_MODEL}")
+    print(f"VESTIGE_EMBED_MODEL = {C.EMBED_MODEL}")
     if not exists:
         print(f"\n힌트: `{C.CONFIG_PATH.name}` 를 만들어 KEY=VALUE 로 적으면 CLI·스케줄러·웹이 모두 읽습니다.")
     return 0
@@ -276,12 +276,12 @@ def cmd_setup(args: argparse.Namespace) -> int:
     print("\n설정 완료! " + (
         "이제 검색할 수 있어요." if getattr(args, "index", False)
         else "스케줄러가 10분마다 자동으로 대화를 축적합니다(첫 실행 때 모델 ~2.2GB 다운로드)."))
-    print("  검색:      mem \"검색어\"        (또는 engram search ...)")
-    print("  데스크탑 앱: engram app        (네이티브 창 — 옵시디언처럼)")
-    print("  웹 UI:      python -m engram.web   →  http://127.0.0.1:8642")
+    print("  검색:      mem \"검색어\"        (또는 vestige search ...)")
+    print("  데스크탑 앱: vestige app        (네이티브 창 — 옵시디언처럼)")
+    print("  웹 UI:      python -m vestige.web   →  http://127.0.0.1:8642")
     if not getattr(args, "index", False):
-        print("  즉시 백필하려면:  engram index   (안 해도 스케줄러가 알아서 채웁니다)")
-    print("  설정 확인: engram config")
+        print("  즉시 백필하려면:  vestige index   (안 해도 스케줄러가 알아서 채웁니다)")
+    print("  설정 확인: vestige config")
     return 0
 
 
@@ -290,12 +290,12 @@ def cmd_app(args: argparse.Namespace) -> int:
     try:
         from . import desktop
     except ImportError:
-        print("데스크탑 앱은 pywebview가 필요합니다:  pip install \"engram[desktop]\"")
+        print("데스크탑 앱은 pywebview가 필요합니다:  pip install \"vestige[desktop]\"")
         return 1
     try:
         desktop.run(port=args.port)
     except ImportError:
-        print("pywebview 미설치. 설치:  pip install \"engram[desktop]\"")
+        print("pywebview 미설치. 설치:  pip install \"vestige[desktop]\"")
         return 1
     return 0
 
@@ -353,7 +353,7 @@ def cmd_syncthing(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    # 콘솔 진입점(engram/mem)은 main()을 인자 없이 호출 → sys.argv에서 직접 취함.
+    # 콘솔 진입점(vestige/mem)은 main()을 인자 없이 호출 → sys.argv에서 직접 취함.
     if argv is None:
         argv = sys.argv[1:]
     # pythonw.exe(콘솔 없음, 스케줄 작업)에선 표준 스트림이 None → print 크래시 방지.
@@ -369,7 +369,7 @@ def main(argv: list[str] | None = None) -> int:
         except Exception:
             pass
 
-    p = argparse.ArgumentParser(prog="engram", description="대화 정보자산 검색")
+    p = argparse.ArgumentParser(prog="vestige", description="대화 정보자산 검색")
     sub = p.add_subparsers(dest="cmd")
 
     s = sub.add_parser("search", help="의미 검색")
@@ -390,7 +390,7 @@ def main(argv: list[str] | None = None) -> int:
     en.add_argument("--backend",
                     choices=["claude", "anthropic", "openai", "gemini", "ollama", "off"],
                     default=None,
-                    help="정제 백엔드 (기본: ENGRAM_ENRICH_BACKEND, 없으면 claude)")
+                    help="정제 백엔드 (기본: VESTIGE_ENRICH_BACKEND, 없으면 claude)")
     en.add_argument("--model", default=None, help="모델 (미지정 시 백엔드별 기본값)")
     en.add_argument("--session", default=None, help="특정 세션만")
     en.add_argument("--limit", type=int, default=None, help="세션 수 제한(테스트용)")

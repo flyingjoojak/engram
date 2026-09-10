@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from engram import scheduler as S
+from vestige import scheduler as S
 
 
 def test_platform_dispatch_dry_run_no_side_effects():
@@ -15,17 +15,17 @@ def test_cron_block_has_both_jobs():
     b = S._cron_block()
     assert f"*/{S.INDEX_EVERY_MIN} * * * *" in b        # 10분 인덱싱
     assert f"{S.ENRICH_MIN} {S.ENRICH_HOUR} * * *" in b  # 04:00 정제
-    assert "-m engram index" in b and "-m engram enrich" in b
+    assert "-m vestige index" in b and "-m vestige enrich" in b
 
 
 def test_cron_block_has_sync_job():
     b = S._cron_block()
-    assert "-m engram sync --once" in b               # 세션 동기화 충돌 해소(주기)
+    assert "-m vestige sync --once" in b               # 세션 동기화 충돌 해소(주기)
 
 
 def test_mac_jobs_include_sync():
     labels = [label for label, _args, _when in S._mac_jobs()]
-    assert "com.engram.sync" in labels
+    assert "com.vestige.sync" in labels
 
 
 def test_cron_strip_is_idempotent():
@@ -41,7 +41,7 @@ def test_cron_strip_is_idempotent():
 
 
 def test_mac_plist_shapes():
-    p_int = S._mac_plist("com.engram.index", ["py", "-m", "engram", "index"], interval=600)
+    p_int = S._mac_plist("com.vestige.index", ["py", "-m", "vestige", "index"], interval=600)
     assert "StartInterval" in p_int and "<integer>600</integer>" in p_int
-    p_cal = S._mac_plist("com.engram.enrich", ["py", "-m", "engram", "enrich"], hour=4, minute=0)
+    p_cal = S._mac_plist("com.vestige.enrich", ["py", "-m", "vestige", "enrich"], hour=4, minute=0)
     assert "StartCalendarInterval" in p_cal and "<integer>4</integer>" in p_cal

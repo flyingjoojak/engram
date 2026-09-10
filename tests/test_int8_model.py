@@ -2,11 +2,11 @@
 import os
 from pathlib import Path
 
-from engram.int8_model import INT8_MODEL_ID, register
+from vestige.int8_model import INT8_MODEL_ID, register
 
 
 def test_int8_in_catalog():
-    from engram import web
+    from vestige import web
     assert INT8_MODEL_ID in web._EMBED_ALLOW
 
 
@@ -23,6 +23,6 @@ def test_register_idempotent_and_adds_custom_model():
 
 
 def test_default_model_is_int8():
-    from engram import config
-    if "ENGRAM_EMBED_MODEL" not in os.environ:
+    from vestige import config
+    if "VESTIGE_EMBED_MODEL" not in os.environ:
         assert config.EMBED_MODEL == INT8_MODEL_ID

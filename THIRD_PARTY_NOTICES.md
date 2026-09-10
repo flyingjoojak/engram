@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-Engram is licensed under the MIT License (see [LICENSE](./LICENSE)).
+Vestige is licensed under the MIT License (see [LICENSE](./LICENSE)).
 It uses, and in one case redistributes, third-party software listed below.
 Each component remains under its own license; nothing here changes those terms.
 
@@ -8,17 +8,17 @@ Each component remains under its own license; nothing here changes those terms.
 
 ## Redistributed binary - Syncthing
 
-Engram drives an **embedded [Syncthing](https://syncthing.net/)** engine for
+Vestige drives an **embedded [Syncthing](https://syncthing.net/)** engine for
 optional device-to-device sync. The official, **unmodified** pre-built Syncthing
 binary is downloaded at runtime from Syncthing's GitHub releases (or bundled
-verbatim in packaged builds) and executed as a separate process - Engram
+verbatim in packaged builds) and executed as a separate process - Vestige
 does not modify or statically link Syncthing.
 
 - **Project:** Syncthing
 - **License:** Mozilla Public License 2.0 (MPL-2.0)
 - **Source code:** https://github.com/syncthing/syncthing
 - **License text:** https://github.com/syncthing/syncthing/blob/main/LICENSE
-- **Pinned version:** see `SYNCTHING_VERSION` in `engram/syncthing.py`
+- **Pinned version:** see `SYNCTHING_VERSION` in `vestige/syncthing.py`
 
 Under MPL-2.0, the source code for the redistributed binary is available at the
 URL above. No changes are made to Syncthing's source; the binary is used as
