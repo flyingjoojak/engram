@@ -414,7 +414,7 @@ function BarProgress({ done, total, unit, cps }: { done: number; total: number; 
     eta = sec < 60 ? t("settings.etaSec", { n: Math.ceil(sec) }) : t("settings.etaMin", { n: Math.ceil(sec / 60) })
   }
   return (
-    <div>
+    <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={p} aria-label={unit}>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div className="h-full origin-left rounded-full bg-primary transition-transform duration-300"
           style={{ transform: `scaleX(${p / 100})` }} />
@@ -995,10 +995,10 @@ export function SettingsView() {
               {/* 수동 정제: 아직 요약·태그 없는 턴을 지금 정제(대기 수·진행바 표시) */}
               <div className="mb-3 border-t py-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="outline" size="sm" disabled={backend === "off" || !!enrichSt?.running} onClick={doEnrich}>
+                  <Button variant="outline" size="sm" disabled={backend === "off" || !!enrichSt?.running} aria-busy={!!enrichSt?.running} onClick={doEnrich}>
                     {enrichSt?.running && <Loader2 className="mr-1 size-4 animate-spin" />}{t("settings.enrichNow")}
                   </Button>
-                  <span className={`text-[11px] ${enrichErr && !enrichSt?.running ? "text-destructive" : "text-muted-foreground"}`}>
+                  <span role="status" aria-live="polite" className={`text-[11px] ${enrichErr && !enrichSt?.running ? "text-destructive" : "text-muted-foreground"}`}>
                     {enrichSt?.running
                       ? (enrichSt.total_sessions > 0 ? t("settings.enrichingSessions", { done: enrichSt.done_sessions, total: enrichSt.total_sessions }) : t("settings.enrichingPhase", { phase: enrichSt.phase }))
                       : enrichErr
@@ -1049,10 +1049,10 @@ export function SettingsView() {
                 {/* 지금 색인 + 대기(새 대화) 수 + 자가복구 진행 */}
                 <div className="border-b py-3 last:border-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="outline" size="sm" disabled={!!ixStatus?.running || reindexing} onClick={doRunIndex}>
+                    <Button variant="outline" size="sm" disabled={!!ixStatus?.running || reindexing} aria-busy={!!ixStatus?.running} onClick={doRunIndex}>
                       {ixStatus?.running && <Loader2 className="mr-1 size-4 animate-spin" />}{t("settings.indexNow")}
                     </Button>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span role="status" aria-live="polite" className="text-[11px] text-muted-foreground">
                       {ixStatus?.running
                         ? (ixStatus.total_chunks > 0
                             ? t("settings.selfHealing")
@@ -1075,7 +1075,7 @@ export function SettingsView() {
                 </div>
                 {reindexing && (
                   <div className="border-b py-3.5">
-                    <div className="mb-1.5 flex items-center gap-2 text-sm text-primary">
+                    <div role="status" aria-live="polite" className="mb-1.5 flex items-center gap-2 text-sm text-primary">
                       <Loader2 className="size-4 animate-spin" />{t("settings.reindexing", { msg: reindexMsg })}
                     </div>
                     {reindexProg.totalChunks > 0
@@ -1105,7 +1105,7 @@ export function SettingsView() {
                     {m.current
                       ? <span className="inline-flex items-center gap-2">
                           <span className="inline-flex items-center gap-1 text-xs text-primary"><Check className="size-3.5" />{t("settings.inUse")}</span>
-                          <Button variant="outline" size="sm" disabled={reindexing || !!ixStatus?.running} onClick={() => setConfirmModel(m)}>{t("settings.fullReindex")}</Button>
+                          <Button variant="outline" size="sm" disabled={reindexing || !!ixStatus?.running} aria-busy={reindexing} onClick={() => setConfirmModel(m)}>{t("settings.fullReindex")}</Button>
                         </span>
                       : <Button variant="outline" size="sm" disabled={reindexing || !!ixStatus?.running} onClick={() => setConfirmModel(m)}>{t("settings.change")}</Button>}
                   </Row>
