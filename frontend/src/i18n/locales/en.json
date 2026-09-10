@@ -49,8 +49,12 @@
   "statusbar": {
     "ariaLabel": "Index and sync status",
     "indexing": "Indexing",
+    "indexingPct": "Indexing {{pct}}%",
     "pendingNew": "{{n}} to index",
     "upToDate": "Index up to date",
+    "indexTip": "How much of this device's raw logs have been turned into the archive. Separate from whether devices are in sync.",
+    "syncTip": "File-sync status with your other devices. Separate from index status.",
+    "vectorsTip": "Vector count is this device's local embedding progress, not a good cross-device metric. Compare devices by conversation/chunk counts instead.",
     "sessions": "{{n}} sessions",
     "turns": "{{n}} conversations",
     "vectors": "{{n}} vectors",
