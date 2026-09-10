@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { TFunction } from "i18next"
 import { Loader2 } from "lucide-react"
@@ -29,13 +29,14 @@ function indexLabel(
   return { text: t("statusbar.upToDate"), dot: "bg-emerald-500", tone: "text-emerald-600 dark:text-emerald-400", spin: false }
 }
 
-function syncLabel(st: SyncthingStatus | null, t: TFunction): { text: string; dot: string; tone: string } {
+function syncLabel(st: SyncthingStatus | null, t: TFunction, stalled: boolean): { text: string; dot: string; tone: string } {
   const g = "text-muted-foreground"
   if (!st || !st.running) return { text: t("statusbar.syncOff"), dot: "bg-muted-foreground/40", tone: g }
   const s = st.sync
   if (!s) return { text: t("statusbar.syncWaiting"), dot: "bg-muted-foreground/40", tone: g }
   if (s.state === "error") return { text: t("statusbar.syncError"), dot: "bg-destructive", tone: "text-destructive" }
   if (s.state === "scanning") return { text: t("statusbar.syncScanning"), dot: "bg-amber-500", tone: "text-amber-600 dark:text-amber-500" }
+  if (stalled) return { text: t("statusbar.syncStalled"), dot: "bg-destructive", tone: "text-destructive" }   // 오래 무진척(상대 미연결 등)
   if (s.state === "syncing" || s.need_items > 0 || s.need_bytes > 0) return { text: t("statusbar.syncReceiving", { pct: s.completion }), dot: "bg-amber-500", tone: "text-amber-600 dark:text-amber-500" }
   if (s.remote_complete != null && s.remote_complete < 100) return { text: t("statusbar.syncSending", { pct: s.remote_complete }), dot: "bg-amber-500", tone: "text-amber-600 dark:text-amber-500" }
   if ((s.peers_connected ?? 0) === 0) return { text: t("statusbar.syncLatestPeerOff"), dot: "bg-muted-foreground/40", tone: g }
@@ -47,6 +48,7 @@ export function StatusBar() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [ix, setIx] = useState<IndexStatus | null>(null)
   const [st, setSt] = useState<SyncthingStatus | null>(null)
+  const progRef = useRef<{ key: string; ts: number }>({ key: "", ts: Date.now() })   // 동기 진척이 마지막으로 변한 시각(멈춤 감지)
 
   useEffect(() => {
     let alive = true
@@ -63,7 +65,16 @@ export function StatusBar() {
 
   const pending = ix?.pending?.files ?? 0
   const idx = indexLabel(ix, pending, t)
-  const sync = syncLabel(st, t)
+  // 전송이 60초 이상 진척 없으면 '멈춤'으로 표시(하드 취소 아님 — Syncthing 재시도는 유지).
+  const s = st?.sync
+  const syncKey = s ? `${s.completion}|${s.remote_complete ?? ""}|${s.need_items}|${s.peers_connected ?? 0}` : ""
+  useEffect(() => {
+    if (syncKey !== progRef.current.key) progRef.current = { key: syncKey, ts: Date.now() }
+  }, [syncKey])
+  const syncPending = !!s && (s.state === "syncing" || s.need_items > 0 || s.need_bytes > 0
+    || (s.remote_complete != null && s.remote_complete < 100))
+  const stalled = syncPending && Date.now() - progRef.current.ts > 60_000
+  const sync = syncLabel(st, t, stalled)
   const n = (v?: number) => (v ?? 0).toLocaleString()
 
   return (

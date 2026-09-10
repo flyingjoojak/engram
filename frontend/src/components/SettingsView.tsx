@@ -245,6 +245,7 @@ function SyncthingSection() {
   const [unpairing, setUnpairing] = useState<{ id: string; name: string } | null>(null)   // 해제 확인 대기 기기
   const [unpairBusy, setUnpairBusy] = useState(false)
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const progRef = useRef<{ key: string; ts: number }>({ key: "", ts: Date.now() })   // 동기 진척이 마지막으로 변한 시각(멈춤 감지용)
 
   const load = () => getSyncthingStatus().then((d) => { setSt(d); setStErr(false) }).catch(() => setStErr(true))
   useEffect(() => {
@@ -289,6 +290,16 @@ function SyncthingSection() {
     finally { setUnpairBusy(false); setUnpairing(null) }
   }
 
+  // 전송이 오래 진척 없으면 '멈춤'으로 안내(하드 취소 아님 — Syncthing 백그라운드 재시도는 유지).
+  const _sync = st?.sync
+  const syncPending = !!_sync && (_sync.state === "syncing" || _sync.need_items > 0 || _sync.need_bytes > 0
+    || (_sync.remote_complete != null && _sync.remote_complete < 100))
+  const syncKey = _sync ? `${_sync.completion}|${_sync.remote_complete ?? ""}|${_sync.need_items}|${_sync.peers_connected ?? 0}` : ""
+  useEffect(() => {
+    if (syncKey !== progRef.current.key) progRef.current = { key: syncKey, ts: Date.now() }
+  }, [syncKey])
+  const stalled = syncPending && Date.now() - progRef.current.ts > 60_000   // 60초 이상 무진척 = 멈춤
+
   const loading = st === null && !stErr   // 첫 응답 전(로딩) vs 조회 실패(stErr)를 구분 — 무한 스피너 방지
   const statusFailed = st === null && stErr
   const running = !!st?.running
@@ -330,7 +341,7 @@ function SyncthingSection() {
 
       {running && (
         <>
-          <SyncStateLine sync={st?.sync} />
+          <SyncStateLine sync={st?.sync} stalled={stalled} />
           <div className="py-2">
             <div className="mb-1 text-[11px] font-medium text-muted-foreground">{t("sync.myCodeLabel")}</div>
             <div className="flex items-center gap-1.5">
@@ -427,7 +438,7 @@ function BarProgress({ done, total, unit, cps }: { done: number; total: number; 
 }
 
 // 공유 폴더 동기 상태 한 줄. 수신(내가 받음)과 전송(상대가 받음)을 합쳐 '진짜 최신'을 판정.
-function SyncStateLine({ sync }: { sync?: SyncthingSync | null }) {
+function SyncStateLine({ sync, stalled = false }: { sync?: SyncthingSync | null; stalled?: boolean }) {
   const { t } = useTranslation()
   let dot = "bg-muted-foreground/40"
   let text: React.ReactNode = t("sync.folderPreparing")
@@ -438,6 +449,9 @@ function SyncStateLine({ sync }: { sync?: SyncthingSync | null }) {
       dot = "bg-destructive"; text = <span className="text-destructive">{t("sync.stateError")}</span>
     } else if (sync.state === "scanning") {
       dot = "bg-amber-500"; text = t("sync.stateScanning")
+    } else if (stalled) {
+      // 전송 중인데 오래 진척 없음(상대 미연결 등) → '멈춤' 정직 안내. Syncthing 재시도는 유지.
+      dot = "bg-destructive"; text = <span className="text-destructive">{t("sync.stalled")}</span>
     } else if (receiving) {
       dot = "bg-amber-500"
       text = <>{t("sync.receiving")} <b className="text-foreground tabular-nums">{sync.completion}%</b>{sync.need_items > 0 ? t("sync.remainingItems", { n: sync.need_items.toLocaleString() }) : ""}</>
