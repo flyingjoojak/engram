@@ -11,7 +11,7 @@ from vestige import mcp_server as M
 
 def test_tools_are_async():
     # 툴이 async여야 FastMCP가 이벤트 루프를 안 막고 await한다.
-    for fn in (M.search_memory, M.get_session, M.recent_sessions, M.stats):
+    for fn in (M.search_memory, M.find_related, M.get_session, M.recent_sessions, M.stats):
         assert asyncio.iscoroutinefunction(fn), f"{fn.__name__} must be async"
 
 
@@ -37,6 +37,35 @@ def test_search_memory_source_filter(monkeypatch):
     assert captured["tool_sources"] == {"claude-code"}
     M._search_memory("q", 5, False, "", "")                     # 미지정 → 전체
     assert captured["tool_sources"] is None
+
+
+def test_find_related_excludes_own_session(monkeypatch, tmp_path):
+    """find_related(#140): 기준 세션은 결과에서 제외하고 비슷한 다른 세션만 반환."""
+    import vestige.search as S
+    from vestige.models import Turn
+    from vestige.store import ArchiveDB
+
+    db = ArchiveDB(tmp_path / "a.db")
+    db.upsert_turn(Turn(id="sA:u1", session_id="sA", uuid="u1", parent_uuid=None,
+                        timestamp="2026-07-24T00:00:00Z", project="p",
+                        question="비슷한 작업 질문", answer="답", actions=()))
+    db.commit()
+    monkeypatch.setattr(M, "_db", lambda: db)
+    monkeypatch.setattr(M, "_vi", lambda: [0])
+    monkeypatch.setattr(M, "_embedder", lambda: object())
+
+    def _hit(sid, tid, q):
+        t = Turn(id=tid, session_id=sid, uuid="x", parent_uuid=None,
+                 timestamp="2026-07-24T00:00:00Z", project="p", question=q, answer="a", actions=())
+        return S.SearchHit(turn=t, score=1.0, sources=("semantic",))
+
+    monkeypatch.setattr(S, "search", lambda *a, **k: [
+        _hit("sA", "sA:u2", "자기 세션 결과"),        # 제외돼야
+        _hit("sB", "sB:u1", "다른 세션 유사 작업"),    # 나와야
+    ])
+    out = M._find_related("sA:u1", 5)
+    assert "다른 세션 유사 작업" in out and "session: sB" in out
+    assert "자기 세션 결과" not in out                 # 기준 세션(sA) 제외
 
 
 def test_offload_uses_single_non_main_worker():

@@ -14,7 +14,7 @@ from vestige import mcp_server as M  # noqa: E402
 def test_tools_registered():
     tools = asyncio.run(M.mcp.list_tools())
     names = {t.name for t in tools}
-    assert {"search_memory", "get_session", "recent_sessions", "stats"} <= names
+    assert {"search_memory", "find_related", "get_session", "recent_sessions", "stats"} <= names
 
 
 def test_kst_format():
