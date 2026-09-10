@@ -64,16 +64,24 @@
 
 > **플랫폼 지원 현황:** **Windows**와 **macOS**는 빌드하고 실기기에서 테스트했습니다. **Linux**는 자동 빌드는 되지만 **아직 실기기에서 테스트하지 못했습니다.** 잘 동작하지 않을 수 있으니, 문제가 생기면 [이슈](https://github.com/flyingjoojak/vestige/issues)로 알려주시면 고치겠습니다.
 
-최신 빌드는 [**Releases**](https://github.com/flyingjoojak/vestige/releases)에 올라옵니다.
+설치본은 [**최신 릴리스**](https://github.com/flyingjoojak/vestige/releases/latest)에 올라옵니다. 릴리스 페이지에 파일이 여럿 보이지만 **받을 건 OS별 설치본 하나뿐**입니다:
+
+| OS | 받을 파일 |
+|----|-----------|
+| 🪟 Windows | `Vestige-Setup-<버전>.exe` |
+| 🍎 macOS | `Vestige-Setup-<버전>.dmg` (또는 아래 Homebrew) |
+| 🐧 Linux | `Vestige-Setup-<버전>.AppImage` |
+
+> 나머지 파일(`.blockmap`, `latest*.yml`)은 앱 **자동 업데이트용 내부 파일**이라 직접 받지 않아도 됩니다.
 
 ### 🪟 Windows - 검증됨
 
-1. `Vestige-Setup-<버전>.exe` 를 받아 실행합니다.
+1. [최신 릴리스](https://github.com/flyingjoojak/vestige/releases/latest)에서 `Vestige-Setup-<버전>.exe` 를 받아 실행합니다.
 2. "Windows의 PC 보호" 경고가 뜨면 **추가 정보 → 실행**. (아직 코드 서명을 안 해서 뜨는 경고일 뿐이며 안전합니다.)
 
 ### 🍎 macOS (Apple Silicon)
 
-> v0.1.0은 아직 코드 서명이 안 돼 있어, **설치 후 아래 서명 명령을 한 번 실행**해야 앱이 열립니다. 서명이 없으면 Apple Silicon이 "손상됨"으로 막기 때문이에요. 다음 버전에서 앱에 서명이 들어가면 이 단계는 없어집니다.
+> 앱이 아직 코드 서명이 안 돼 있어, **설치 후 아래 서명 명령을 한 번 실행**해야 열립니다. 서명이 없으면 Apple Silicon이 "손상됨"으로 막기 때문이에요. 앱에 서명이 들어가면([#157](https://github.com/flyingjoojak/vestige/issues/157)) 이 단계는 없어집니다.
 
 **1) 설치 - Homebrew (권장)**
 
