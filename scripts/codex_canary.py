@@ -24,7 +24,7 @@ from pathlib import Path
 
 # rollout 포맷을 검증(픽스처/실데이터)한 최신 codex 버전.
 # 새 버전 포맷을 확인하고 필요한 어댑터 케이스·픽스처를 반영했으면 이 값을 올릴 것.
-TESTED_VERSION = "0.149.0"
+TESTED_VERSION = "0.149.1"
 NPM_LATEST_URL = "https://registry.npmjs.org/@openai/codex/latest"
 
 
