@@ -149,3 +149,31 @@ def test_idle_finalized_turn_recaptures_trailing_content(tmp_path):
 
     # 3) 변화 없으면 스킵(무의미한 재처리 없음).
     assert index_file(str(f), db, vi, emb, idle_secs=120) == 0
+
+
+def test_held_turn_completes_with_frequent_checkpoints(tmp_path):
+    """checkpoint_turns=1(잦은 중간 체크포인트)에서도 idle-held 마지막 턴이 뒷내용으로 완성되는지(#151)."""
+    import os, time
+    f = tmp_path / "s.jsonl"
+    db = ArchiveDB(tmp_path / "a.db")
+    vi = VectorIndex(tmp_path / "v.npy", tmp_path / "v.json")
+    emb = FakeEmbedder()
+
+    # 완결 턴(u1) + 긴 도구호출로 아직 열린 턴(u2), 파일 idle.
+    f.write_bytes(("\n".join([
+        _turn("s1", "u1", "이전 완결 질문 상세 내용"), _assistant("s1", "이전 답변입니다"),
+        _turn("s1", "u2", "빌드를 고쳐줘 상세 내용"), _assistant("s1", "확인하겠습니다", tool="Bash"),
+    ]) + "\n").encode("utf-8"))
+    old = time.time() - 300
+    os.utime(f, (old, old))
+    index_file(str(f), db, vi, emb, idle_secs=120, checkpoint_turns=1)
+    assert db.get_turn("s1:u2").answer == "확인하겠습니다"
+    assert db.get_hold(str(f)) is not None      # held 턴 시작 기록됨(중간 체크포인트에도 유지)
+
+    # 도구 완료 → 같은 턴에 뒷내용 append(새 유저턴 없음) → 재읽기로 완성.
+    with open(f, "a", encoding="utf-8") as fp:
+        fp.write(_assistant("s1", "빌드 완료. 테스트도 통과했습니다.") + "\n")
+    os.utime(f, (old, old))
+    index_file(str(f), db, vi, emb, idle_secs=120, checkpoint_turns=1)
+    assert "빌드 완료" in (db.get_turn("s1:u2").answer or ""), "잦은 체크포인트에서 held 턴 뒷내용 유실"
+    assert db.get_turn("s1:u1").answer == "이전 답변입니다"   # 앞 완결 턴은 그대로

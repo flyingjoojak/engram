@@ -209,7 +209,20 @@ class ArchiveDB:
 
     # --- 턴 -------------------------------------------------------------
     def upsert_turn(self, turn: Turn, source: str = "claude-code",
-                    source_file: str | None = None) -> None:
+                    source_file: str | None = None) -> bool:
+        """턴 저장(멱등). **완성도 축소 금지**: 이미 저장된 턴이 더 완성(질문+답변+행동 길이가
+        더 큼)이면 더 짧은 재파싱본으로 덮지 않고 그대로 둔다. 반환값 = 실제로 기록됐으면 True,
+        기존을 유지(스킵)했으면 False. (긴 도구호출로 짧게 확정된 턴을 kill/재색인/기기병합이
+        되돌리는 것 방지. 대화 로그는 append-only 라 '줄지 않는다'가 안전한 불변식.)"""
+        actions_json = _actions_to_json(turn.actions)
+        row = self.conn.execute(
+            "SELECT length(coalesce(question,''))+length(coalesce(answer,''))"
+            "+length(coalesce(actions,'')) AS n FROM turns WHERE id=?", (turn.id,),
+        ).fetchone()
+        if row is not None:
+            new_n = len(turn.question or "") + len(turn.answer or "") + len(actions_json)
+            if row["n"] > new_n:
+                return False   # 기존이 더 완성 → 유지
         self.conn.execute(
             """INSERT INTO turns(id,session_id,uuid,parent_uuid,timestamp,project,
                  question,answer,actions,source,source_file)
@@ -218,7 +231,7 @@ class ArchiveDB:
                  question=excluded.question, answer=excluded.answer, actions=excluded.actions,
                  source=excluded.source, source_file=excluded.source_file""",
             (turn.id, turn.session_id, turn.uuid, turn.parent_uuid, turn.timestamp,
-             turn.project, turn.question, turn.answer, _actions_to_json(turn.actions),
+             turn.project, turn.question, turn.answer, actions_json,
              source, source_file),
         )
         if self.fts_enabled:  # 키워드 인덱스 동기화(멱등)
@@ -227,6 +240,7 @@ class ArchiveDB:
                 "INSERT INTO turns_fts(turn_id,text) VALUES(?,?)",
                 (turn.id, self._fts_text(turn.question, turn.answer, turn.actions)),
             )
+        return True
 
     def delete_turns(self, turn_ids: list[str]) -> list[str]:
         """턴·청크·FTS 행을 삭제하고, 제거된 chunk_key 목록을 돌려준다(벡터 인덱스 정리용)."""

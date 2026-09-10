@@ -31,6 +31,23 @@ def test_delete_turns_removes_turn_chunks_fts(tmp_path):
     assert db.keyword_search("8088") == []
 
 
+def test_upsert_turn_never_shrinks_content(tmp_path):
+    """완성도 축소 금지(#151): 더 짧은 재파싱본은 기존 완성 턴을 덮지 않는다. 반환 bool로 구분."""
+    db = ArchiveDB(tmp_path / "a.db")
+    full = "도구 실행이 끝난 뒤의 완성된 긴 답변입니다 상세 내용 " * 3
+    # 1) 완성 턴 저장 → 기록됨(True)
+    assert db.upsert_turn(_turn("s1:u1", q="빌드 고쳐줘", a=full)) is True
+    # 2) 더 짧은 재파싱본(같은 id) → 유지(False), 내용 안 바뀜
+    assert db.upsert_turn(_turn("s1:u1", q="빌드 고쳐줘", a="짧음")) is False
+    assert db.get_turn("s1:u1").answer == full
+    # 3) 더 긴 내용 → 갱신(True)
+    longer = full + " 추가로 붙은 뒷내용"
+    assert db.upsert_turn(_turn("s1:u1", q="빌드 고쳐줘", a=longer)) is True
+    db.commit()
+    assert db.get_turn("s1:u1").answer == longer
+    assert db.keyword_search("뒷내용") != []          # FTS도 완성본과 일치
+
+
 def test_vectorindex_remove(tmp_path):
     vi = VectorIndex(tmp_path / "v.npy", tmp_path / "i.json")
     vi.add(["a#0", "b#0", "c#0"], np.eye(3, dtype=np.float32))

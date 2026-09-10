@@ -237,10 +237,11 @@ def index_file(
 
     # 저장 출처: 어댑터가 source_name 을 주면 그걸(예: subagent 어댑터 → 'claude-code'), 없으면 name.
     src = getattr(adapter, "source_name", adapter.name)
-    for turn, resume in turns:
-        db.upsert_turn(turn, source=src, source_file=path)   # 출처·원문경로 기록(재개용)
+    last_i = len(turns) - 1
+    for i, (turn, resume) in enumerate(turns):
+        written = db.upsert_turn(turn, source=src, source_file=path)   # 출처·원문경로 기록(재개용)
         count += 1
-        if should_embed(turn):
+        if written and should_embed(turn):   # 축소로 스킵된 턴은 청크/벡터도 기존 그대로(일관 유지)
             ctx = prev_q.get(turn.session_id, "")
             for c in chunk_turn(turn):
                 db.add_chunks([c])
@@ -251,6 +252,10 @@ def index_file(
         if turn.question:
             prev_q[turn.session_id] = turn.question
         last_resume = resume
+        # idle 로 held 된 마지막 턴은 중간 체크포인트로 커서를 넘기지 않는다: 오직 최종
+        # checkpoint(hold 포함)에서만 커밋 → 프로세스가 kill 돼도 다음 pass가 그 턴을 다시 읽어 완성.
+        if new_hold is not None and i == last_i:
+            continue
         since_ckpt += 1
         if since_ckpt >= checkpoint_turns:
             checkpoint(last_resume)   # 중간 체크포인트: hold 없음(확정된 경계까지만)
