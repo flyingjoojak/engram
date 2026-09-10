@@ -146,6 +146,12 @@ def build_report(source: str) -> dict:
     zero_turn_files = 0
     unreadable_files = 0
     total_records = 0
+    # claude-code 한정: 구조적으로 읽히는(role=user + 텍스트) 사용자 프롬프트 수.
+    # >0 이면 포맷 자체는 읽히는 것(0턴은 sdk/plumbing 필터로 제외됐을 뿐) → 드리프트 오탐 억제.
+    readable_user_prompts = 0
+    _user_text = None
+    if source == "claude-code":
+        from .parser import _user_text as _user_text  # noqa: PLC0415
     samples: dict[str, Any] = {}   # combo -> redacted record
     first_recs: list[dict] | None = None
 
@@ -164,6 +170,10 @@ def build_report(source: str) -> dict:
                 t = o.get("type")
                 if t:
                     type_counts[str(t)] += 1
+                if _user_text is not None and t == "user":
+                    m = o.get("message")
+                    if isinstance(m, dict) and m.get("role") == "user" and _user_text(m.get("content")) is not None:
+                        readable_user_prompts += 1
                 pl = o.get("payload") if isinstance(o.get("payload"), dict) else {}
                 pt = pl.get("type")
                 if pt:
@@ -187,6 +197,9 @@ def build_report(source: str) -> dict:
     # 한계(알려진): 일부 파일만 새 포맷이면(업그레이드 직후 구/신 혼재) files_with_turns>0 이라
     #   여기선 안 잡힌다. 그 경우는 payload_type_counts/item_type_counts 로 개발자가 눈으로 확인.
     drift = n_files > 0 and files_with_turns == 0 and total_records > 5
+    # claude-code: 읽히는 사용자 프롬프트가 하나라도 있으면 포맷은 정상(전부 sdk/plumbing 제외일 뿐) → 오탐 아님.
+    if source == "claude-code" and readable_user_prompts > 0:
+        drift = False
 
     # 샘플이 없으면(=전부 턴 있음) 첫 파일에서 정상 스키마 샘플 첨부.
     if not samples and first_recs:
@@ -198,6 +211,7 @@ def build_report(source: str) -> dict:
         "root_exists": True,
         "files_scanned": n_files,
         "files_with_turns": files_with_turns,
+        "readable_user_prompts": readable_user_prompts,
         "unreadable_files": unreadable_files,
         "cli_versions": sorted(cli_versions),
         "drift_suspected": drift,

@@ -119,6 +119,41 @@ def test_build_report_mixed_files_not_flagged(tmp_path, monkeypatch):
     assert r["suspect_files"] == 0
 
 
+def test_build_report_claude_all_sdk_not_drift(tmp_path, monkeypatch):
+    """claude-code(#125): 전부 sdk 자동화라 0턴이어도, 구조는 읽히므로 드리프트 오탐 억제."""
+    monkeypatch.setenv("VESTIGE_SKIP_SDK_SESSIONS", "1")   # sdk 제외 강제 ON(결정적)
+    root = tmp_path / "projects"
+    d = root / "proj"
+    d.mkdir(parents=True)
+    lines = []
+    for i in range(6):
+        lines.append(json.dumps({"type": "user", "uuid": f"u{i}", "parentUuid": None, "sessionId": "s",
+                                 "cwd": "/p", "timestamp": "t", "promptSource": "sdk", "isSidechain": False,
+                                 "message": {"role": "user", "content": f"자동화 작업 {i}"}}))
+        lines.append(json.dumps({"type": "assistant", "sessionId": "s",
+                                 "message": {"role": "assistant", "content": [{"type": "text", "text": "ok"}]}}))
+    (d / "s.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    monkeypatch.setattr(config, "PROJECTS_DIR", root)
+    r = schema_report.build_report("claude-code")
+    assert r["files_with_turns"] == 0            # sdk 제외로 턴 0
+    assert r["readable_user_prompts"] >= 6        # 그러나 구조는 읽힘
+    assert r["drift_suspected"] is False          # → 오탐 억제
+
+
+def test_build_report_claude_unreadable_is_drift(tmp_path, monkeypatch):
+    """claude-code(#125): user 메시지 구조 자체를 못 읽으면(진짜 포맷 변경) 드리프트 True."""
+    root = tmp_path / "projects"
+    d = root / "proj"
+    d.mkdir(parents=True)
+    lines = [json.dumps({"type": "brand-new-record", "blob": f"x{i}"}) for i in range(8)]
+    (d / "s.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    monkeypatch.setattr(config, "PROJECTS_DIR", root)
+    r = schema_report.build_report("claude-code")
+    assert r["files_with_turns"] == 0
+    assert r["readable_user_prompts"] == 0
+    assert r["drift_suspected"] is True
+
+
 def test_build_report_detects_drift_and_no_leak(tmp_path, monkeypatch):
     # 미래 포맷 흉내: event_msg 는 많은데 어댑터가 아는 사용자 턴이 없음 → 턴 0 → 드리프트.
     lines = [f'{{"timestamp":"t","type":"session_meta","payload":{{"id":"{SID}","cwd":"/p","cli_version":"0.200.0"}}}}']
