@@ -15,6 +15,30 @@ def test_tools_are_async():
         assert asyncio.iscoroutinefunction(fn), f"{fn.__name__} must be async"
 
 
+def test_search_memory_source_filter(monkeypatch):
+    """source 파라미터가 백엔드 tool_sources 로 연결되는지(#139). ""=전체, "claude" 별칭."""
+    import vestige.search as S
+
+    captured: dict = {}
+
+    def fake_search(query, db, vi, emb, **kw):
+        captured.clear()
+        captured.update(kw)
+        return []
+
+    monkeypatch.setattr(S, "search", fake_search)
+    monkeypatch.setattr(M, "_db", lambda: type("D", (), {"get_meta": lambda self, k: None})())
+    monkeypatch.setattr(M, "_vi", lambda: [0])          # len 1 (비어있지 않음)
+    monkeypatch.setattr(M, "_embedder", lambda: object())
+
+    M._search_memory("q", 5, False, "", "", source="codex")
+    assert captured["tool_sources"] == {"codex"}
+    M._search_memory("q", 5, False, "", "", source="claude")   # 별칭 → claude-code
+    assert captured["tool_sources"] == {"claude-code"}
+    M._search_memory("q", 5, False, "", "")                     # 미지정 → 전체
+    assert captured["tool_sources"] is None
+
+
 def test_offload_uses_single_non_main_worker():
     async def go():
         main = threading.get_ident()

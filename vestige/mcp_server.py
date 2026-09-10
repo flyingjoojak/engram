@@ -81,7 +81,8 @@ def _kst(ts: str) -> str:
         return (ts or "")[:16].replace("T", " ")
 
 
-def _search_memory(query: str, k: int, semantic_only: bool, since: str, until: str) -> str:
+def _search_memory(query: str, k: int, semantic_only: bool, since: str, until: str,
+                   source: str = "") -> str:
     from .config import EMBED_MODEL
     from .search import search as run_search
 
@@ -94,8 +95,14 @@ def _search_memory(query: str, k: int, semantic_only: bool, since: str, until: s
     if stored and stored != EMBED_MODEL:
         warn = (f"⚠️ 임베딩 모델 불일치: 저장 벡터={stored} / 설정={EMBED_MODEL}. "
                 f"의미 검색 결과가 부정확할 수 있습니다. 재색인 후 MCP(클라이언트) 재시작이 필요합니다.\n\n")
+    # 출처 필터: ""=전체, "codex"/"claude-code"(별칭 "claude") → 그 출처만.
+    src = (source or "").strip().lower()
+    if src == "claude":
+        src = "claude-code"
+    tool_sources = {src} if src else None
     hits = run_search(query, db, vi, _embedder(), k=max(1, min(k, 20)),
-                      since=since or None, until=until or None, keyword=not semantic_only)
+                      since=since or None, until=until or None, keyword=not semantic_only,
+                      tool_sources=tool_sources)
     if not hits:
         return f"'{query}' 에 대한 결과가 없습니다."
 
@@ -168,14 +175,15 @@ def _stats() -> str:
 # 시그니처·docstring은 FastMCP가 툴 스키마로 노출하므로 래퍼에 유지한다.
 @mcp.tool()
 async def search_memory(query: str, k: int = 5, semantic_only: bool = False,
-                        since: str = "", until: str = "") -> str:
-    """과거 Claude Code 대화를 의미+키워드 하이브리드로 검색해 원문과 요약을 반환한다.
+                        since: str = "", until: str = "", source: str = "") -> str:
+    """과거 Claude Code·Codex 대화를 의미+키워드 하이브리드로 검색해 원문과 요약을 반환한다.
 
     사용자가 이전에 무엇을 했는지/결정했는지/어떻게 구현했는지 등을 물으면 먼저 이 도구로 찾아라.
     query: 자연어 질의(개념·의역 가능). k: 결과 수(기본 5). since/until: 'YYYY-MM-DD'(KST) 날짜 범위.
+    source: 출처 좁히기 — "codex" 또는 "claude-code"(기본 ""=전체). 특정 도구 대화만 찾을 때 사용.
     각 결과에 session 값이 있으니, 더 자세한 맥락이 필요하면 get_session(session)으로 세션 전체를 열람하라.
     """
-    return await _offload(_search_memory, query, k, semantic_only, since, until)
+    return await _offload(_search_memory, query, k, semantic_only, since, until, source)
 
 
 @mcp.tool()
