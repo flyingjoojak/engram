@@ -168,7 +168,7 @@ function McpSection() {
           </span>
         }>
           <Button variant="ghost" size="sm" onClick={() => setSnip(snip === tgt.id ? null : tgt.id)}>{t("mcp.command")}</Button>
-          <Button variant={tgt.registered ? "outline" : "default"} size="sm" disabled={busy === tgt.id} onClick={() => toggle(tgt)}>
+          <Button variant={tgt.registered ? "outline" : "default"} size="sm" busy={busy === tgt.id} onClick={() => toggle(tgt)}>
             {busy === tgt.id ? <Loader2 className="size-4 animate-spin" /> : tgt.registered ? t("mcp.unregister") : t("mcp.register")}
           </Button>
         </Row>
@@ -219,7 +219,7 @@ function AutoSyncSection() {
           <span className="text-[11px] text-muted-foreground">{t("sync.autoHelp")}</span>
         </span>
       }>
-        <Button variant="outline" size="sm" disabled={archiving} onClick={mergeNow}>
+        <Button variant="outline" size="sm" busy={archiving} onClick={mergeNow}>
           {archiving && <Loader2 className="mr-1 size-4 animate-spin" />}{t("sync.mergeNow")}
         </Button>
       </Row>
@@ -311,8 +311,8 @@ function SyncthingSection() {
           : statusFailed
             ? <Button variant="outline" size="sm" onClick={load}>{t("common.retry")}</Button>
             : running
-              ? <Button variant="outline" size="sm" disabled={busy} onClick={stop}>{t("sync.stop")}</Button>
-              : <Button size="sm" disabled={busy || starting} onClick={start}>
+              ? <Button variant="outline" size="sm" busy={busy} onClick={stop}>{t("sync.stop")}</Button>
+              : <Button size="sm" busy={busy || starting} onClick={start}>
                   {busy || starting ? <Loader2 className="size-4 animate-spin" /> : t("sync.start")}
                 </Button>}
       </Row>
@@ -345,7 +345,7 @@ function SyncthingSection() {
             <div className="mb-1 text-[11px] font-medium text-muted-foreground">{t("sync.pastePeerLabel")}</div>
             <div className="flex items-center gap-1.5">
               <Input value={peer} onChange={(e) => setPeer(e.target.value)} placeholder="XXXXXXX-XXXXXXX-…" className="h-8 min-w-0 flex-1 font-mono text-[12px]" />
-              <Button size="sm" disabled={busy || !peer.trim()} onClick={pair}>{t("sync.connect")}</Button>
+              <Button size="sm" disabled={!peer.trim()} busy={busy} onClick={pair}>{t("sync.connect")}</Button>
             </div>
             {note && <div className={`mt-1 text-[11px] ${note.ok ? "text-primary" : "text-destructive"}`}>{note.text}</div>}
           </div>
@@ -839,11 +839,11 @@ export function SettingsView() {
                           className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${on ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{status}</span>
                         <code className="cm-inline min-w-0 flex-1 truncate text-[11px] text-muted-foreground">{s.root ?? "—"}</code>
                         <button type="button" role="switch" aria-checked={enabled}
-                          disabled={!s.exists || busy}
+                          disabled={!s.exists} aria-disabled={busy || undefined} aria-busy={busy || undefined}
                           aria-label={t("settings.sourceToggleAria", { label, action: enabled ? t("sync.turnOff") : t("sync.turnOn") })}
                           aria-describedby={`src-status-${s.name}`}
-                          onClick={() => toggleSourceRow(s.name, !enabled)}
-                          className={`ml-auto inline-flex h-6 shrink-0 items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50 ${enabled ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15" : "border-border text-muted-foreground hover:bg-muted"}`}>
+                          onClick={() => { if (busy) return; toggleSourceRow(s.name, !enabled) }}
+                          className={`ml-auto inline-flex h-6 shrink-0 items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50 aria-disabled:opacity-50 aria-disabled:pointer-events-none ${enabled ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15" : "border-border text-muted-foreground hover:bg-muted"}`}>
                           {busy && <Loader2 className="size-3 animate-spin" />}{enabled ? t("common.on") : t("common.off")}
                         </button>
                       </div>
@@ -860,10 +860,10 @@ export function SettingsView() {
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-2 border-t pt-2.5 text-sm">
                     <span className="font-medium">{t("settings.skipSdk")}</span>
-                    <button type="button" role="switch" aria-checked={skipSdk} disabled={skipSdkBusy}
+                    <button type="button" role="switch" aria-checked={skipSdk} aria-disabled={skipSdkBusy || undefined} aria-busy={skipSdkBusy || undefined}
                       aria-label={t("settings.skipSdk")} aria-describedby="skip-sdk-help"
-                      onClick={() => toggleSkipSdk(!skipSdk)}
-                      className={`ml-auto inline-flex h-6 shrink-0 items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50 ${skipSdk ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15" : "border-border text-muted-foreground hover:bg-muted"}`}>
+                      onClick={() => { if (skipSdkBusy) return; toggleSkipSdk(!skipSdk) }}
+                      className={`ml-auto inline-flex h-6 shrink-0 items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50 aria-disabled:opacity-50 aria-disabled:pointer-events-none ${skipSdk ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15" : "border-border text-muted-foreground hover:bg-muted"}`}>
                       {skipSdkBusy && <Loader2 className="size-3 animate-spin" />}{skipSdk ? t("common.on") : t("common.off")}
                     </button>
                   </div>
@@ -966,11 +966,11 @@ export function SettingsView() {
 
               <div className="mb-2 flex flex-wrap items-center gap-3">
                 {backend !== "off" && (
-                  <Button variant="outline" onClick={runTest} disabled={testing}>
+                  <Button variant="outline" onClick={runTest} busy={testing}>
                     {testing ? <><Loader2 className="size-4 animate-spin" />{t("settings.testing")}</> : t("settings.testConnection")}
                   </Button>
                 )}
-                <Button onClick={save} disabled={testing}>{t("common.save")}</Button>
+                <Button onClick={save} busy={testing}>{t("common.save")}</Button>
                 {saved && <span className="inline-flex items-center gap-1 text-sm text-primary"><Check className="size-4" />{t("settings.savedScheduled")}</span>}
               </div>
               {blockMsg && (
@@ -995,7 +995,7 @@ export function SettingsView() {
               {/* 수동 정제: 아직 요약·태그 없는 턴을 지금 정제(대기 수·진행바 표시) */}
               <div className="mb-3 border-t py-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="outline" size="sm" disabled={backend === "off" || !!enrichSt?.running} aria-busy={!!enrichSt?.running} onClick={doEnrich}>
+                  <Button variant="outline" size="sm" disabled={backend === "off"} busy={!!enrichSt?.running} onClick={doEnrich}>
                     {enrichSt?.running && <Loader2 className="mr-1 size-4 animate-spin" />}{t("settings.enrichNow")}
                   </Button>
                   <span role="status" aria-live="polite" className={`text-[11px] ${enrichErr && !enrichSt?.running ? "text-destructive" : "text-muted-foreground"}`}>
@@ -1049,7 +1049,7 @@ export function SettingsView() {
                 {/* 지금 색인 + 대기(새 대화) 수 + 자가복구 진행 */}
                 <div className="border-b py-3 last:border-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="outline" size="sm" disabled={!!ixStatus?.running || reindexing} aria-busy={!!ixStatus?.running} onClick={doRunIndex}>
+                    <Button variant="outline" size="sm" busy={!!ixStatus?.running || reindexing} onClick={doRunIndex}>
                       {ixStatus?.running && <Loader2 className="mr-1 size-4 animate-spin" />}{t("settings.indexNow")}
                     </Button>
                     <span role="status" aria-live="polite" className="text-[11px] text-muted-foreground">
@@ -1105,9 +1105,9 @@ export function SettingsView() {
                     {m.current
                       ? <span className="inline-flex items-center gap-2">
                           <span className="inline-flex items-center gap-1 text-xs text-primary"><Check className="size-3.5" />{t("settings.inUse")}</span>
-                          <Button variant="outline" size="sm" disabled={reindexing || !!ixStatus?.running} aria-busy={reindexing} onClick={() => setConfirmModel(m)}>{t("settings.fullReindex")}</Button>
+                          <Button variant="outline" size="sm" busy={reindexing || !!ixStatus?.running} onClick={() => setConfirmModel(m)}>{t("settings.fullReindex")}</Button>
                         </span>
-                      : <Button variant="outline" size="sm" disabled={reindexing || !!ixStatus?.running} onClick={() => setConfirmModel(m)}>{t("settings.change")}</Button>}
+                      : <Button variant="outline" size="sm" busy={reindexing || !!ixStatus?.running} onClick={() => setConfirmModel(m)}>{t("settings.change")}</Button>}
                   </Row>
                 ))}
               </Section>
