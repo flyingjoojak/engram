@@ -39,7 +39,13 @@ def _norm(p: str) -> str:
 
 # ── Claude Code (~/.claude.json) ──────────────────────────────────
 def pretrust_claude(cwd: str, path: Path | None = None) -> bool:
-    """~/.claude.json 의 projects[<cwd>].hasTrustDialogAccepted 를 true 로(비파괴 read-modify-write)."""
+    """~/.claude.json 의 projects[<cwd>].hasTrustDialogAccepted 를 true 로(비파괴 read-modify-write).
+
+    ★키 표기 주의: Claude 는 윈도우에서 신뢰 폴더를 **네이티브 백슬래시**(예 `C:\\Users\\me`)로
+    저장한다(실측: 같은 폴더의 forward-slash 항목은 신뢰돼도 claude 가 안 읽어 프롬프트가 계속 떴음).
+    표기가 버전·경로에 따라 섞이므로, (1) 같은 폴더로 정규화 매칭되는 기존 항목을 전부 신뢰로 만들고,
+    (2) 네이티브·forward 두 표기 키를 모두 보장한다 — claude 가 어느 표기를 읽어도 매칭되게.
+    """
     path = path or (Path.home() / ".claude.json")
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -52,21 +58,33 @@ def pretrust_claude(cwd: str, path: Path | None = None) -> bool:
         projects = {}
         data["projects"] = projects
 
+    def _trust(key: str) -> bool:
+        e = projects.get(key)
+        if not isinstance(e, dict):
+            e = {}
+            projects[key] = e
+        if e.get("hasTrustDialogAccepted") is True:
+            return False
+        e["hasTrustDialogAccepted"] = True
+        return True
+
+    changed = False
+    # (1) 같은 폴더로 정규화 매칭되는 기존 항목(슬래시·대소문자 차이 흡수)을 전부 신뢰로.
     target = _norm(cwd)
-    # 기존 항목을 슬래시·대소문자 차이까지 감안해 찾음(있으면 그걸 갱신 → 키 추측 불필요).
-    key = next((k for k in projects if isinstance(k, str) and _norm(k) == target), None)
-    if key is None:
-        # 새 항목: Claude 가 쓰는 정규화(윈도우=실제 케이스 forward-slash)에 최대한 맞춰 생성.
-        key = str(Path(cwd).resolve()).replace("\\", "/") if os.name == "nt" else cwd
+    for k in list(projects):
+        if isinstance(k, str) and _norm(k) == target:
+            changed |= _trust(k)
+    # (2) claude 가 쓸 수 있는 표기(네이티브 백슬래시 / forward-slash) 키를 모두 보장.
+    #     resolve() 는 안 씀(존재하지 않는 경로에 드라이브를 붙이는 등 오히려 표기가 어긋남) —
+    #     로그의 cwd 는 이미 실제 케이스의 절대 네이티브 경로라 그대로 쓴다.
+    variants = {cwd, cwd.replace("\\", "/")}
+    if os.name == "nt":
+        variants.add(cwd.replace("/", "\\"))
+    for key in variants:
+        changed |= _trust(key)
 
-    entry = projects.get(key)
-    if not isinstance(entry, dict):
-        entry = {}
-        projects[key] = entry
-    if entry.get("hasTrustDialogAccepted") is True:
-        return True   # 이미 신뢰 → 변경 없음
-
-    entry["hasTrustDialogAccepted"] = True
+    if not changed:
+        return True   # 이미 다 신뢰 → 쓰기 없음(멱등)
     return _atomic_write(path, json.dumps(data, ensure_ascii=False, indent=2))
 
 
