@@ -1,6 +1,6 @@
 {
   "name": "vestige-desktop",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Vestige 데스크탑 앱 (Electron 셸 + 파이썬 사이드카)",
   "main": "main.js",
   "author": "flyingjoojak",
@@ -26,7 +26,7 @@
     ],
     "win": { "target": ["nsis"], "icon": "icon.png", "artifactName": "Vestige-${version}-Windows.${ext}" },
     "nsis": { "installerLanguages": ["en_US"], "include": "installer.nsh" },
-    "mac": { "target": "dmg", "category": "public.app-category.productivity", "icon": "icon.png", "artifactName": "Vestige-${version}-macOS.${ext}" },
+    "mac": { "target": "dmg", "category": "public.app-category.productivity", "icon": "icon.png", "identity": null, "artifactName": "Vestige-${version}-macOS.${ext}" },
     "linux": { "target": "AppImage", "category": "Utility", "icon": "icon.png", "artifactName": "Vestige-${version}-Linux.${ext}" },
     "publish": [
       { "provider": "github", "owner": "flyingjoojak", "repo": "vestige" }

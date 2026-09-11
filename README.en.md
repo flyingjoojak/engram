@@ -68,22 +68,20 @@ Installers land on the [**latest release**](https://github.com/flyingjoojak/vest
 
 | OS | Download |
 |----|----------|
-| 🪟 Windows | `Vestige-Setup-<version>.exe` |
-| 🍎 macOS | `Vestige-Setup-<version>.dmg` (or Homebrew below) |
-| 🐧 Linux | `Vestige-Setup-<version>.AppImage` |
+| 🪟 Windows | `Vestige-<version>-Windows.exe` |
+| 🍎 macOS | `Vestige-<version>-macOS.dmg` (or Homebrew below) |
+| 🐧 Linux | `Vestige-<version>-Linux.AppImage` |
 
 > The other files (`.blockmap`, `latest*.yml`) are **internal auto-update files** - you don't need to download them.
 
 ### 🪟 Windows - verified
 
-1. Download `Vestige-Setup-<version>.exe` from the [latest release](https://github.com/flyingjoojak/vestige/releases/latest) and run it.
+1. Download `Vestige-<version>-Windows.exe` from the [latest release](https://github.com/flyingjoojak/vestige/releases/latest) and run it.
 2. If Windows shows a "protected your PC" warning, click **More info → Run anyway**. (It's just because the app isn't code-signed yet - it's safe.)
 
 ### 🍎 macOS (Apple Silicon)
 
-> The app isn't code-signed yet, so **after installing, run the signing command below once** to make it open. Without a signature, Apple Silicon blocks it as "damaged". Once the app ships signed ([#157](https://github.com/flyingjoojak/vestige/issues/157)), this step goes away.
-
-**1) Install - Homebrew (recommended)**
+**Homebrew (recommended)**
 
 ```bash
 brew tap flyingjoojak/vestige
@@ -92,16 +90,7 @@ brew install --cask vestige
 
 It's a third-party tap, so if you see an "untrusted tap" warning, run `brew trust flyingjoojak/vestige` and install again. Update with `brew upgrade --cask vestige`.
 
-**Or the `.dmg` directly**: download from [Releases](https://github.com/flyingjoojak/vestige/releases) and drag **Vestige** to Applications.
-
-**2) After installing - sign it locally (required)**
-
-```bash
-xattr -cr /Applications/Vestige.app
-codesign --force --deep --sign - /Applications/Vestige.app
-```
-
-Then open the app. (This just adds a local ad-hoc signature - it's safe.)
+**Or the `.dmg` directly**: download from [Releases](https://github.com/flyingjoojak/vestige/releases) and drag **Vestige** to Applications. The first time you open it, if you see an "unidentified developer" warning, right-click the app and choose **Open** once. (It isn't signed with an Apple certificate yet, but it carries an ad-hoc signature, so Apple Silicon no longer blocks it as "damaged".)
 
 > Intel Macs aren't supported yet (arm64 build).
 

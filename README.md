@@ -68,22 +68,20 @@
 
 | OS | 받을 파일 |
 |----|-----------|
-| 🪟 Windows | `Vestige-Setup-<버전>.exe` |
-| 🍎 macOS | `Vestige-Setup-<버전>.dmg` (또는 아래 Homebrew) |
-| 🐧 Linux | `Vestige-Setup-<버전>.AppImage` |
+| 🪟 Windows | `Vestige-<버전>-Windows.exe` |
+| 🍎 macOS | `Vestige-<버전>-macOS.dmg` (또는 아래 Homebrew) |
+| 🐧 Linux | `Vestige-<버전>-Linux.AppImage` |
 
 > 나머지 파일(`.blockmap`, `latest*.yml`)은 앱 **자동 업데이트용 내부 파일**이라 직접 받지 않아도 됩니다.
 
 ### 🪟 Windows - 검증됨
 
-1. [최신 릴리스](https://github.com/flyingjoojak/vestige/releases/latest)에서 `Vestige-Setup-<버전>.exe` 를 받아 실행합니다.
+1. [최신 릴리스](https://github.com/flyingjoojak/vestige/releases/latest)에서 `Vestige-<버전>-Windows.exe` 를 받아 실행합니다.
 2. "Windows의 PC 보호" 경고가 뜨면 **추가 정보 → 실행**. (아직 코드 서명을 안 해서 뜨는 경고일 뿐이며 안전합니다.)
 
 ### 🍎 macOS (Apple Silicon)
 
-> 앱이 아직 코드 서명이 안 돼 있어, **설치 후 아래 서명 명령을 한 번 실행**해야 열립니다. 서명이 없으면 Apple Silicon이 "손상됨"으로 막기 때문이에요. 앱에 서명이 들어가면([#157](https://github.com/flyingjoojak/vestige/issues/157)) 이 단계는 없어집니다.
-
-**1) 설치 - Homebrew (권장)**
+**Homebrew (권장)**
 
 ```bash
 brew tap flyingjoojak/vestige
@@ -92,16 +90,7 @@ brew install --cask vestige
 
 서드파티 tap이라 "untrusted tap" 경고가 뜨면 `brew trust flyingjoojak/vestige` 실행 후 다시 설치하세요. 업데이트는 `brew upgrade --cask vestige`.
 
-**또는 `.dmg` 직접**: [Releases](https://github.com/flyingjoojak/vestige/releases)에서 받아 **Vestige** 을 Applications 로 드래그.
-
-**2) 설치 후 - 서명 대체(필수)**
-
-```bash
-xattr -cr /Applications/Vestige.app
-codesign --force --deep --sign - /Applications/Vestige.app
-```
-
-그다음 앱을 여세요. (로컬에서 ad-hoc 서명을 붙이는 것뿐이라 안전합니다.)
+**또는 `.dmg` 직접**: [Releases](https://github.com/flyingjoojak/vestige/releases)에서 받아 **Vestige** 를 Applications 로 드래그합니다. 처음 열 때 "확인되지 않은 개발자" 경고가 뜨면 앱을 우클릭 → **열기**를 한 번 눌러주세요. (아직 Apple 인증서로 서명하진 않았지만 ad-hoc 서명이 들어가 있어 "손상됨"으로 막히진 않습니다.)
 
 > Intel Mac은 아직 지원하지 않습니다(arm64 빌드).
 
