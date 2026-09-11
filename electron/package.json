@@ -20,6 +20,7 @@
     "appId": "com.vestige.app",
     "productName": "Vestige",
     "icon": "icon.png",
+    "afterPack": "./afterPack.js",
     "files": ["main.js", "preload.js", "loading.html", "icon.png"],
     "extraResources": [
       { "from": "../dist/vestige-backend", "to": "backend" }
