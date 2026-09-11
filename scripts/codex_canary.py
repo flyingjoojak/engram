@@ -22,9 +22,14 @@ import sys
 import urllib.request
 from pathlib import Path
 
-# rollout 포맷을 검증(픽스처/실데이터)한 최신 codex 버전.
+# rollout 포맷을 검증(픽스처/실데이터)한 최신 codex 버전(= npm ``@openai/codex`` 버전).
 # 새 버전 포맷을 확인하고 필요한 어댑터 케이스·픽스처를 반영했으면 이 값을 올릴 것.
-TESTED_VERSION = "0.149.1"
+#
+# 주의: npm 패키지 버전과 rollout ``session_meta.cli_version`` 은 번호 체계가 갈라져 있다.
+#   예) 설치 CLI = npm 0.154.0 인데 rollout 은 ``cli_version: 0.149.1`` 로 스탬프됨.
+#   원격 감시는 npm 버전을, 실제 포맷 검증(--local)은 rollout 을 본다. 그래서 npm 이 올라가도
+#   로그 포맷은 그대로일 수 있다(#136: npm 0.154.0 로 만든 로그를 CodexAdapter 가 정상 처리 확인).
+TESTED_VERSION = "0.154.0"
 NPM_LATEST_URL = "https://registry.npmjs.org/@openai/codex/latest"
 
 
