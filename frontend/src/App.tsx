@@ -127,23 +127,15 @@ export default function App() {
         <svg viewBox="0 0 32 32" className="mb-2 size-8" role="img" aria-label="Vestige">
           <title>Vestige</title>
           <rect width="32" height="32" rx="7" fill="#0b0d11" />
-          <g stroke="#34d399" strokeWidth="1" strokeOpacity="0.5" strokeLinecap="round">
-            <line x1="16" y1="7.5" x2="9.1" y2="14.6" />
-            <line x1="16" y1="7.5" x2="22.9" y2="15" />
-            <line x1="9.1" y1="14.6" x2="16" y2="18.7" />
-            <line x1="22.9" y1="15" x2="16" y2="18.7" />
-            <line x1="16" y1="18.7" x2="12" y2="24.8" />
-            <line x1="16" y1="18.7" x2="21.3" y2="24.3" />
-            <line x1="12" y1="24.8" x2="21.3" y2="24.3" />
-          </g>
-          <g fill="#34d399">
-            <circle cx="9.1" cy="14.6" r="1.7" />
-            <circle cx="22.9" cy="15" r="1.7" />
-            <circle cx="16" cy="18.7" r="1.5" />
-            <circle cx="12" cy="24.8" r="1.8" />
-            <circle cx="21.3" cy="24.3" r="1.4" />
-          </g>
-          <circle cx="16" cy="7.5" r="2.4" fill="#6ee7b7" />
+          <path
+            d="M9.4 9.8 L16 22.8 L22.6 9.8"
+            fill="none"
+            stroke="#f5f7fa"
+            strokeWidth="3.1"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="24" cy="10" r="2.2" fill="#34d399" />
         </svg>
         {NAV.map((n) => (
           <button
