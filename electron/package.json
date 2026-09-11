@@ -27,7 +27,7 @@
     ],
     "win": { "target": ["nsis"], "icon": "icon.png", "artifactName": "Vestige-${version}-Windows.${ext}" },
     "nsis": { "installerLanguages": ["en_US"], "include": "installer.nsh" },
-    "mac": { "target": "dmg", "category": "public.app-category.productivity", "icon": "icon.png", "identity": null, "artifactName": "Vestige-${version}-macOS.${ext}" },
+    "mac": { "target": "dmg", "category": "public.app-category.productivity", "icon": "icon-mac.png", "identity": null, "artifactName": "Vestige-${version}-macOS.${ext}" },
     "linux": { "target": "AppImage", "category": "Utility", "icon": "icon.png", "artifactName": "Vestige-${version}-Linux.${ext}" },
     "publish": [
       { "provider": "github", "owner": "flyingjoojak", "repo": "vestige" }
