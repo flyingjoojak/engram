@@ -32,8 +32,32 @@ from .proc import NO_WINDOW  # Windows 콘솔 창 깜빡임 방지
 SYNCTHING_VERSION = "v2.1.3"   # pin(재현성). 갱신 시 여기만 바꾸면 됨.
 # 공유 폴더 ID는 양쪽 기기가 같아야 연결됨 → 고정값 사용(우리가 관리하는 전용 폴더).
 DEFAULT_FOLDER_ID = "vestige-claude-projects"
+# 두 번째 공유 폴더: Codex rollout 원본(~/.codex/sessions). projects 폴더와 상대 목록을 일치시켜
+# 원본 로그까지 동기화 → 상대 기기에서 재개(codex resume)·증분 재색인 가능(#153).
+CODEX_FOLDER_ID = "vestige-codex-sessions"
 # 이름 변경(chatmem→vestige) 전 폴더 ID. 남아 있으면 startup에서 새 폴더로 이관 후 제거(자가복구).
 LEGACY_FOLDER_ID = "chatmem-claude-projects"
+
+# folder_sync 여러 폴더를 하나로 합칠 때 '가장 심각한' 상태 선택 순위(높을수록 심각).
+_SYNC_STATE_RANK = {"idle": 0, "scanning": 1, "syncing": 2, "error": 3}
+
+
+def _merge_sync(parts: list[dict]) -> dict:
+    """여러 공유 폴더의 folder_sync 결과를 하나로 합친다(사용자에겐 '전체' 상태 하나만 보임).
+
+    completion=최소(가장 덜 받은 폴더 기준), need_*/global=합, state=가장 심각한 상태.
+    이렇게 접어야 '두 폴더 중 하나라도 동기화 중/멈춤'이 UI에 정확히 드러난다.
+    """
+    completion = min((p.get("completion", 100.0) for p in parts), default=100.0)
+    state = max((p.get("state") or "idle" for p in parts),
+                key=lambda s: _SYNC_STATE_RANK.get(s, 0), default="idle")
+    return {
+        "state": state,
+        "completion": completion,
+        "need_items": sum(int(p.get("need_items") or 0) for p in parts),
+        "need_bytes": sum(int(p.get("need_bytes") or 0) for p in parts),
+        "global_bytes": sum(int(p.get("global_bytes") or 0) for p in parts),
+    }
 
 logger = logging.getLogger(__name__)
 VERSIONING_MAX_AGE_SEC = 31536000   # 삭제·덮어쓰기 이력 보관 기간(기본 1년). 조정 시 여기만.
@@ -374,6 +398,7 @@ class Syncthing:
         이 잔재를 떼는 용도. 성공 시 True.
         """
         # 1) 공유 폴더 device 목록에서 대상 제거(공유 중단). 실패해도 2)의 device 삭제는 시도.
+        #    projects + codex 두 폴더의 상대 목록을 함께 갱신(둘을 항상 일치시킴).
         if projects_dir is not None:
             try:
                 cfg = self.config()
@@ -383,6 +408,9 @@ class Syncthing:
                     peers = [d.get("deviceID") for d in folder.get("devices", [])
                              if d.get("deviceID") and d.get("deviceID") not in (my, device_id)]
                     self.share_projects(projects_dir, peers)   # 대상 뺀 나머지로 재공유
+                    if any(f.get("id") == CODEX_FOLDER_ID for f in cfg.get("folders", [])):
+                        self.share_projects(C.CODEX_SESSIONS_DIR, peers,
+                                            folder_id=CODEX_FOLDER_ID, label="Codex sessions")
             except Exception as ex:  # noqa: BLE001
                 logger.warning("기기 해제: 폴더 공유 갱신 실패(%s): %r", device_id, ex)
         # 2) 기기 등록 제거
@@ -432,6 +460,34 @@ class Syncthing:
         logger.info("syncthing 레거시 폴더(%s) 정리 완료 — 상대 %d대 이관", LEGACY_FOLDER_ID, len(peers))
         return True
 
+    def ensure_codex_folder(self, codex_dir) -> bool:
+        """Codex rollout 원본(~/.codex/sessions)을 두 번째 공유 폴더로 등록·유지(#153).
+
+        projects 폴더(DEFAULT_FOLDER_ID)에 붙어 있는 상대 집합을 그대로 codex 폴더에 미러링한다.
+        두 폴더의 상대 목록을 항상 일치시켜, 새 페어링/startup 자가복구 어느 경로로 와도 수렴한다.
+        - 아직 페어링 전(projects 폴더 없음)·공유 상대 없음이면 no-op(단독 사용자 오버헤드 0).
+        - codex 폴더가 없던 기존 페어 사용자는 startup 자가복구로 이 폴더를 자동 획득.
+        - 상대가 codex 를 안 써도 원본을 받도록, 로컬 폴더가 없으면 만들어 공유한다(파리티).
+        반환: 공유(또는 갱신)했으면 True, 페어링 전/상대 없음/조회 실패면 False.
+        """
+        try:
+            cfg = self.config()
+        except Exception as ex:  # noqa: BLE001 — REST 미준비 등: 다음 기동에 재시도
+            logger.warning("codex 폴더 등록: 설정 조회 실패, 다음 기동 재시도: %r", ex)
+            return False
+        proj = next((f for f in cfg.get("folders", []) if f.get("id") == DEFAULT_FOLDER_ID), None)
+        if proj is None:
+            return False   # 아직 페어링 전 — 할 것 없음(신규 단독 설치는 여기서 no-op)
+        my = self.device_id()
+        peers = [d.get("deviceID") for d in proj.get("devices", [])
+                 if d.get("deviceID") and d.get("deviceID") != my]
+        if not peers:
+            return False   # 공유 상대 없음
+        with contextlib.suppress(Exception):
+            Path(codex_dir).mkdir(parents=True, exist_ok=True)   # 상대가 codex 안 써도 수신하도록
+        self.share_projects(codex_dir, peers, folder_id=CODEX_FOLDER_ID, label="Codex sessions")
+        return True
+
     def config(self) -> dict:
         return self._get("/rest/config")
 
@@ -474,21 +530,28 @@ class Syncthing:
         cfg = self.config()
         conns = self.connections().get("connections", {})
         folders = cfg.get("folders", [])
-        # 우리가 관리하는 폴더가 설정돼 있을 때만 동기 상태 조회(없으면 None → UI에서 안내)
-        managed = any(f.get("id") == DEFAULT_FOLDER_ID for f in folders)
+        # 우리가 관리하는 폴더(projects + codex)들의 동기 상태를 하나로 합쳐 보고(없으면 None).
+        managed_ids = [fid for fid in (DEFAULT_FOLDER_ID, CODEX_FOLDER_ID)
+                       if any(f.get("id") == fid for f in folders)]
         sync = None
-        if managed:
-            with contextlib.suppress(Exception):
-                sync = self.folder_sync(DEFAULT_FOLDER_ID)
-        # 연결된 상대들이 내 폴더를 얼마나 받았는지(전송 방향) → '진짜 최신' 판정용.
+        if managed_ids:
+            parts = []
+            for fid in managed_ids:
+                with contextlib.suppress(Exception):
+                    parts.append(self.folder_sync(fid))
+            if parts:
+                sync = _merge_sync(parts)
+        # 연결된 상대들이 내 폴더들을 얼마나 받았는지(전송 방향) → '진짜 최신' 판정용.
+        # 폴더별 완성도의 최소로 접어야 '두 폴더 다 최신'일 때만 100%로 본다.
         if sync is not None:
             remotes = []
             for d in cfg.get("devices", []):
                 did = d.get("deviceID")
                 if did and did != my and conns.get(did, {}).get("connected"):
-                    v = self.device_completion(did, DEFAULT_FOLDER_ID)
-                    if v is not None:
-                        remotes.append(v)
+                    vals = [self.device_completion(did, fid) for fid in managed_ids]
+                    vals = [v for v in vals if v is not None]
+                    if vals:
+                        remotes.append(min(vals))
             sync["peers_connected"] = len(remotes)
             sync["remote_complete"] = round(min(remotes), 1) if remotes else None
         return {

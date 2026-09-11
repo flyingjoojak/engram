@@ -110,3 +110,89 @@ def test_device_completion_parses(monkeypatch):
     st = S.Syncthing(gui_port=1, apikey="k")
     monkeypatch.setattr(st, "_get", lambda p, timeout=5.0: {"completion": 42.5})
     assert st.device_completion("PEER1") == 42.5
+
+
+# ── #153: Codex 원본 폴더 두 번째 공유 ─────────────────────────────
+def test_merge_sync_takes_worst_case():
+    merged = S._merge_sync([
+        {"state": "idle", "completion": 100.0, "need_items": 0, "need_bytes": 0, "global_bytes": 5},
+        {"state": "syncing", "completion": 30.0, "need_items": 2, "need_bytes": 7, "global_bytes": 5},
+    ])
+    assert merged["completion"] == 30.0        # 가장 덜 받은 폴더 기준
+    assert merged["state"] == "syncing"        # 더 심각한 상태
+    assert merged["need_items"] == 2 and merged["need_bytes"] == 7 and merged["global_bytes"] == 10
+
+
+def test_ensure_codex_folder_mirrors_projects_peers(monkeypatch, tmp_path):
+    st = S.Syncthing(gui_port=1, apikey="k")
+    monkeypatch.setattr(st, "device_id", lambda: "MYID")
+    monkeypatch.setattr(st, "config", lambda: {"folders": [
+        {"id": S.DEFAULT_FOLDER_ID, "devices": [{"deviceID": "MYID"}, {"deviceID": "PEER1"}]}]})
+    calls = []
+    monkeypatch.setattr(st, "_req", lambda m, p, body=None, timeout=8.0: calls.append((m, p, body)) or {})
+    assert st.ensure_codex_folder(tmp_path / "codex") is True
+    m, path, body = calls[-1]
+    assert m == "PUT" and path == f"/rest/config/folders/{S.CODEX_FOLDER_ID}"
+    assert body["id"] == S.CODEX_FOLDER_ID and body["label"] == "Codex sessions"
+    assert {d["deviceID"] for d in body["devices"]} == {"MYID", "PEER1"}   # projects 상대 미러
+    assert (tmp_path / "codex").exists()   # 파리티: 상대가 codex 안 써도 받도록 로컬 폴더 생성
+
+
+def test_ensure_codex_folder_noop_before_pairing(monkeypatch, tmp_path):
+    st = S.Syncthing(gui_port=1, apikey="k")
+    monkeypatch.setattr(st, "config", lambda: {"folders": []})   # 아직 projects 폴더 없음
+    calls = []
+    monkeypatch.setattr(st, "_req", lambda *a, **k: calls.append(a) or {})
+    assert st.ensure_codex_folder(tmp_path / "codex") is False
+    assert calls == []   # 단독 사용자 → PUT 없음
+
+
+def test_ensure_codex_folder_noop_without_peers(monkeypatch, tmp_path):
+    st = S.Syncthing(gui_port=1, apikey="k")
+    monkeypatch.setattr(st, "device_id", lambda: "MYID")
+    monkeypatch.setattr(st, "config", lambda: {"folders": [
+        {"id": S.DEFAULT_FOLDER_ID, "devices": [{"deviceID": "MYID"}]}]})   # 나만
+    calls = []
+    monkeypatch.setattr(st, "_req", lambda *a, **k: calls.append(a) or {})
+    assert st.ensure_codex_folder(tmp_path / "codex") is False
+    assert calls == []
+
+
+def test_remove_device_updates_both_folders(monkeypatch, tmp_path):
+    st = S.Syncthing(gui_port=1, apikey="k")
+    monkeypatch.setattr(st, "device_id", lambda: "MYID")
+    monkeypatch.setattr(st, "config", lambda: {"folders": [
+        {"id": S.DEFAULT_FOLDER_ID, "devices": [{"deviceID": d} for d in ("MYID", "PEER1", "GONE")]},
+        {"id": S.CODEX_FOLDER_ID, "devices": [{"deviceID": d} for d in ("MYID", "PEER1", "GONE")]},
+    ]})
+    calls = []
+    monkeypatch.setattr(st, "_req", lambda m, p, body=None, timeout=8.0: calls.append((m, p, body)) or {})
+    assert st.remove_device("GONE", tmp_path / "proj") is True
+    puts = [(p, body) for (m, p, body) in calls if m == "PUT"]
+    proj_put = next(b for (p, b) in puts if p.endswith(S.DEFAULT_FOLDER_ID))
+    codex_put = next(b for (p, b) in puts if p.endswith(S.CODEX_FOLDER_ID))
+    assert {d["deviceID"] for d in proj_put["devices"]} == {"MYID", "PEER1"}   # GONE 제거
+    assert {d["deviceID"] for d in codex_put["devices"]} == {"MYID", "PEER1"}  # codex 폴더도 동일
+    assert ("DELETE", "/rest/config/devices/GONE", None) in calls             # device 등록도 삭제
+
+
+def test_pair_summary_aggregates_projects_and_codex(monkeypatch):
+    st = S.Syncthing(gui_port=1, apikey="k")
+    monkeypatch.setattr(st, "device_id", lambda: "MYID")
+    monkeypatch.setattr(st, "config", lambda: {
+        "devices": [{"deviceID": "MYID"}, {"deviceID": "PEER1"}],
+        "folders": [{"id": S.DEFAULT_FOLDER_ID, "path": "/p", "devices": []},
+                    {"id": S.CODEX_FOLDER_ID, "path": "/c", "devices": []}],
+    })
+    monkeypatch.setattr(st, "connections", lambda: {"connections": {"PEER1": {"connected": True}}})
+    monkeypatch.setattr(st, "folder_sync", lambda fid=S.DEFAULT_FOLDER_ID: (
+        {"state": "idle", "completion": 100.0, "need_items": 0, "need_bytes": 0, "global_bytes": 10}
+        if fid == S.DEFAULT_FOLDER_ID else
+        {"state": "syncing", "completion": 40.0, "need_items": 3, "need_bytes": 6, "global_bytes": 10}))
+    # PEER1: projects 100% · codex 50% → 폴더별 최소 50%
+    monkeypatch.setattr(st, "device_completion",
+                        lambda did, fid=S.DEFAULT_FOLDER_ID: 100.0 if fid == S.DEFAULT_FOLDER_ID else 50.0)
+    s = st.pair_summary()["sync"]
+    assert s["completion"] == 40.0 and s["state"] == "syncing"   # 최소·최악
+    assert s["need_items"] == 3 and s["need_bytes"] == 6
+    assert s["remote_complete"] == 50.0 and s["peers_connected"] == 1   # 폴더별 최소로 접음

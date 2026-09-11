@@ -912,6 +912,9 @@ def _st_start_bg(persist: bool = True) -> None:
                 from . import config as C
                 with contextlib.suppress(Exception):
                     inst.migrate_legacy_folder(C.PROJECTS_DIR)
+                # 기존 페어에도 codex 원본 폴더를 자가복구로 추가(#153). 페어링 전이면 no-op.
+                with contextlib.suppress(Exception):
+                    inst.ensure_codex_folder(C.CODEX_SESSIONS_DIR)
                 with _st_lock:
                     _st_state.update(running=True, starting=False, phase="실행 중", my_id=inst.device_id())
                 _sync_start(persist=False)   # 기기 연결이 켜지면 충돌 정리 워커도 자동 시작(별도 토글 없음)
@@ -984,6 +987,9 @@ def api_syncthing_pair(payload: dict):
         name = str((payload or {}).get("name", "")).strip()
         inst.add_device(did, name)
         inst.share_projects(C.PROJECTS_DIR, [did])
+        # 같은 상대에게 Codex rollout 원본 폴더도 공유(#153) — projects 상대 집합을 미러링.
+        with contextlib.suppress(Exception):
+            inst.ensure_codex_folder(C.CODEX_SESSIONS_DIR)
         return {"ok": True}
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": f"연결 실패: {e}", "code": "pair_failed", "detail": str(e)}
