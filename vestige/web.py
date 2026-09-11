@@ -745,6 +745,12 @@ def api_resume(session: str = Query(...), force: bool = False):
                        "지금 재개 시 분기(fork)될 수 있어요.",
         }
 
+    # 재개 직전, 그 폴더의 CLI '신뢰' 프롬프트를 미리 통과시켜 원클릭 재개(#181). best-effort:
+    # 실패하면 조용히 넘어가고 CLI 가 원래대로 프롬프트를 띄운다. cwd 는 이미 _safe_resume_cwd 통과.
+    if cwd:
+        from . import resume_trust
+        resume_trust.pretrust(source, cwd)
+
     try:
         _launch_resume(sid, cwd, source)
     except Exception as e:               # 실행 실패를 사용자에게 그대로 전달
