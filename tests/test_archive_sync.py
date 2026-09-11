@@ -100,3 +100,37 @@ def test_import_updates_local_with_fuller_peer_turn(tmp_path):
 def test_import_no_dir(tmp_path):
     dst = ArchiveDB(tmp_path / "b.db")
     assert A.import_archives(dst, tmp_path / "nope", "devB") == 0
+
+
+def test_export_import_preserves_source(tmp_path):
+    # #153: 병합으로 넘어온 codex 턴이 상대에서 claude-code 로 라벨되던 버그 회귀 방지.
+    proj = tmp_path / "projects"
+    proj.mkdir()
+    src = ArchiveDB(tmp_path / "a.db")
+    src.upsert_turn(_turn("t1", "s1", "q", "a"), source="codex",
+                    source_file="/home/me/.codex/sessions/2026/01/01/rollout-x.jsonl")
+    src.upsert_turn(_turn("t2", "s2", "q", "a"))   # 기본 claude-code
+    src.commit()
+    A.export_archive(src, proj, "devA")
+
+    dst = ArchiveDB(tmp_path / "b.db")
+    assert A.import_archives(dst, proj, "devB") == 2
+    # codex 턴은 codex 로, source_file 까지 보존(재개·재색인에 필요).
+    assert dst.session_source("s1") == (
+        "codex", "/home/me/.codex/sessions/2026/01/01/rollout-x.jsonl", "proj")
+    # 기본 소스 턴은 claude-code 유지.
+    assert dst.session_source("s2")[0] == "claude-code"
+
+
+def test_import_old_snapshot_without_source(tmp_path):
+    # 하위호환: source 도입 전 스냅샷(t 11칸)은 claude-code 로 안전하게 import.
+    import json
+    proj = tmp_path / "projects"
+    (proj / A.ARCHIVE_DIRNAME).mkdir(parents=True)
+    old = {"t": ["t9", "s9", "u9", "", "2026-01-01T00:00", "proj", "q", "a", "[]", None, None],
+           "c": [[0, "chunk"]]}
+    (proj / A.ARCHIVE_DIRNAME / "devA.ndjson").write_text(
+        json.dumps(old, ensure_ascii=False) + "\n", encoding="utf-8")
+    dst = ArchiveDB(tmp_path / "b.db")
+    assert A.import_archives(dst, proj, "devB") == 1
+    assert dst.session_source("s9")[0] == "claude-code"
