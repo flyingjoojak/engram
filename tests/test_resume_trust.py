@@ -2,58 +2,88 @@
 from __future__ import annotations
 
 import json
+import os
 
 from vestige import resume_trust as R
 
 
+def _trusted(projects: dict, cwd: str) -> bool:
+    """cwd 와 같은 폴더로 정규화 매칭되는 신뢰(true) 항목이 하나라도 있으면 True."""
+    return any(
+        isinstance(e, dict) and e.get("hasTrustDialogAccepted") is True and R._norm(k) == R._norm(cwd)
+        for k, e in projects.items()
+    )
+
+
 # ── Claude Code (~/.claude.json) ──────────────────────────────────
-def test_claude_sets_trust_on_existing_untrusted_entry(tmp_path):
+def test_claude_sets_trust_and_preserves(tmp_path):
+    cwd = tmp_path / "proj"
+    cwd.mkdir()
     p = tmp_path / ".claude.json"
     p.write_text(json.dumps({
         "someTopLevel": 123,
         "projects": {
-            "/home/me/proj": {"hasTrustDialogAccepted": False, "allowedTools": ["x"]},
+            str(cwd): {"hasTrustDialogAccepted": False, "allowedTools": ["x"]},
             "/home/me/other": {"hasTrustDialogAccepted": True},
         },
     }), encoding="utf-8")
-    assert R.pretrust_claude("/home/me/proj", path=p) is True
+    assert R.pretrust_claude(str(cwd), path=p) is True
     d = json.loads(p.read_text(encoding="utf-8"))
-    assert d["projects"]["/home/me/proj"]["hasTrustDialogAccepted"] is True
-    assert d["projects"]["/home/me/proj"]["allowedTools"] == ["x"]   # 다른 키 보존
+    assert _trusted(d["projects"], str(cwd))
+    assert d["projects"][str(cwd)]["hasTrustDialogAccepted"] is True
+    assert d["projects"][str(cwd)]["allowedTools"] == ["x"]           # 다른 키 보존
     assert d["projects"]["/home/me/other"]["hasTrustDialogAccepted"] is True  # 남의 항목 불변
-    assert d["someTopLevel"] == 123                                   # 최상위 보존
+    assert d["someTopLevel"] == 123                                    # 최상위 보존
 
 
 def test_claude_creates_entry_when_missing(tmp_path):
-    # 실재 폴더를 cwd 로(윈도우 resolve() 가 드라이브 없는 경로에 드라이브를 붙이는 아티팩트 회피).
     cwd = tmp_path / "newproj"
     cwd.mkdir()
     p = tmp_path / ".claude.json"
     p.write_text(json.dumps({"projects": {"/a": {"hasTrustDialogAccepted": True}}}), encoding="utf-8")
     assert R.pretrust_claude(str(cwd), path=p) is True
     d = json.loads(p.read_text(encoding="utf-8"))
-    # 생성된 항목을 정규화 매칭으로 찾음(플랫폼별 키 표기 차이 흡수).
-    key = next(k for k in d["projects"] if R._norm(k) == R._norm(str(cwd)))
-    assert d["projects"][key]["hasTrustDialogAccepted"] is True
-    assert d["projects"]["/a"]["hasTrustDialogAccepted"] is True     # 기존 보존
+    assert _trusted(d["projects"], str(cwd))
+    assert d["projects"]["/a"]["hasTrustDialogAccepted"] is True       # 기존 보존
 
 
-def test_claude_matches_trailing_slash(tmp_path):
-    # 저장된 키와 cwd 가 trailing slash 만 다를 때 같은 폴더로 인식(중복 항목 생성 안 함).
+def test_claude_trusts_existing_variant_slash(tmp_path):
+    # claude 가 어느 표기를 읽든 매칭되도록, 슬래시만 다른 기존 항목도 신뢰로 바뀌어야 함(핵심 버그).
+    cwd = tmp_path / "proj"
+    cwd.mkdir()
+    other_fmt = str(cwd).replace("\\", "/") if os.name == "nt" else str(cwd) + "/"
     p = tmp_path / ".claude.json"
-    p.write_text(json.dumps({"projects": {"/home/me/proj/": {"hasTrustDialogAccepted": False}}}), encoding="utf-8")
-    assert R.pretrust_claude("/home/me/proj", path=p) is True
+    p.write_text(json.dumps({"projects": {other_fmt: {"hasTrustDialogAccepted": False}}}), encoding="utf-8")
+    assert R.pretrust_claude(str(cwd), path=p) is True
     d = json.loads(p.read_text(encoding="utf-8"))
-    assert list(d["projects"].keys()) == ["/home/me/proj/"]          # 새 키 안 생김
-    assert d["projects"]["/home/me/proj/"]["hasTrustDialogAccepted"] is True
+    assert d["projects"][other_fmt]["hasTrustDialogAccepted"] is True  # 표기만 다른 기존 항목도 신뢰로
 
 
-def test_claude_already_trusted_is_noop_true(tmp_path):
+def test_claude_ensures_native_backslash_key_on_windows(tmp_path):
+    # 윈도우: 네이티브 백슬래시 키가 반드시 신뢰로 존재해야 함(claude 가 읽는 표기).
+    cwd = tmp_path / "proj"
+    cwd.mkdir()
     p = tmp_path / ".claude.json"
-    orig = json.dumps({"projects": {"/home/me/proj": {"hasTrustDialogAccepted": True}}})
-    p.write_text(orig, encoding="utf-8")
-    assert R.pretrust_claude("/home/me/proj", path=p) is True
-    assert p.read_text(encoding="utf-8") == orig                     # 파일 그대로
+    p.write_text(json.dumps({"projects": {}}), encoding="utf-8")
+    assert R.pretrust_claude(str(cwd), path=p) is True
+    d = json.loads(p.read_text(encoding="utf-8"))
+    if os.name == "nt":
+        native = str(cwd)  # tmp_path 는 네이티브(백슬래시)
+        assert d["projects"].get(native, {}).get("hasTrustDialogAccepted") is True
+        assert d["projects"].get(native.replace("\\", "/"), {}).get("hasTrustDialogAccepted") is True
+    else:
+        assert d["projects"].get(str(cwd), {}).get("hasTrustDialogAccepted") is True
+
+
+def test_claude_idempotent(tmp_path):
+    cwd = tmp_path / "proj"
+    cwd.mkdir()
+    p = tmp_path / ".claude.json"
+    p.write_text(json.dumps({"projects": {}}), encoding="utf-8")
+    assert R.pretrust_claude(str(cwd), path=p) is True
+    first = p.read_text(encoding="utf-8")
+    assert R.pretrust_claude(str(cwd), path=p) is True   # 두 번째 호출
+    assert p.read_text(encoding="utf-8") == first        # 멱등: 이미 다 신뢰라 재기록 없음
 
 
 def test_claude_missing_file_returns_false(tmp_path):

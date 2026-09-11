@@ -14,6 +14,7 @@ import { AlertTriangle } from "lucide-react"
 import { getOnboarding, getSchemaReport, getSystem, getStats, getIndexStatus, type SchemaSource } from "@/lib/api"
 import { buildIssueUrl, copyText } from "@/lib/report"
 import { applyTheme } from "@/lib/theme"
+import vestigeMark from "@/assets/vestige-mark.png"
 
 // three.js는 무거우니 3D 탭 열 때만 로드(초기 번들 경량).
 const GraphView3D = lazy(() => import("@/components/GraphView3D").then((m) => ({ default: m.GraphView3D })))
@@ -124,19 +125,7 @@ export default function App() {
     <div className="grid h-full grid-cols-[60px_1fr] overflow-hidden pb-7">
       {/* 옵시디언식 좌측 아이콘 리본 */}
       <nav aria-label={t("nav.mainAria")} className="flex flex-col items-center gap-1 border-r bg-sidebar py-3">
-        <svg viewBox="0 0 32 32" className="mb-2 size-8" role="img" aria-label="Vestige">
-          <title>Vestige</title>
-          <rect width="32" height="32" rx="7" fill="#0b0d11" />
-          <path
-            d="M9.4 9.8 L16 22.8 L22.6 9.8"
-            fill="none"
-            stroke="#f5f7fa"
-            strokeWidth="3.1"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle cx="24" cy="10" r="2.2" fill="#34d399" />
-        </svg>
+        <img src={vestigeMark} alt="Vestige" width={32} height={32} className="mb-2 size-8" />
         {NAV.map((n) => (
           <button
             key={n.v}
