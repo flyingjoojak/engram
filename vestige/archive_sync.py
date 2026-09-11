@@ -54,12 +54,15 @@ def export_archive(db, projects_dir: str | Path, did: str) -> int:
     n = 0
     with open(tmp, "w", encoding="utf-8") as f:
         for r in db.conn.execute(
-            "SELECT id,session_id,uuid,parent_uuid,timestamp,project,question,answer,actions,summary,tags "
+            "SELECT id,session_id,uuid,parent_uuid,timestamp,project,question,answer,actions,summary,tags,"
+            "source,source_file "
             "FROM turns",
         ):
+            # t[11]=source, t[12]=source_file 를 뒤에 append(옛 스냅샷은 11칸이라 import 에서 길이로 판별).
             rec = {
                 "t": [r["id"], r["session_id"], r["uuid"], r["parent_uuid"], r["timestamp"],
-                      r["project"], r["question"], r["answer"], r["actions"], r["summary"], r["tags"]],
+                      r["project"], r["question"], r["answer"], r["actions"], r["summary"], r["tags"],
+                      r["source"], r["source_file"]],
                 "c": chunks.get(r["id"], []),
             }
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
@@ -105,10 +108,13 @@ def import_archives(db, projects_dir: str | Path, my_did: str, *, vi=None, log_f
                         peer_n = len(t[6] or "") + len(t[7] or "") + len(t[8] or "")
                         if peer_n <= (db.turn_content_len(tid) or 0):
                             continue
+                    # source/source_file 는 신 스냅샷에만 있음(옛 스냅샷 t 는 11칸) → 길이로 판별.
+                    src = t[11] if len(t) > 11 else None
+                    src_file = t[12] if len(t) > 12 else None
                     turn = Turn(id=t[0], session_id=t[1], uuid=t[2], parent_uuid=t[3],
                                 timestamp=t[4], project=t[5], question=t[6], answer=t[7],
-                                actions=_actions_from_json(t[8]))
-                    db.upsert_turn(turn)               # FTS 포함(신규거나 더 완성 → 기록)
+                                actions=_actions_from_json(t[8]), source=src or "claude-code")
+                    db.upsert_turn(turn, source=src or "claude-code", source_file=src_file)  # FTS 포함(신규거나 더 완성 → 기록)
                     if t[9]:                            # summary → 정제도 함께 보존
                         db.set_enrichment(tid, t[9], json.loads(t[10]) if t[10] else [])
                     if existing:
