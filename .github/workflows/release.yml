@@ -105,6 +105,28 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false" # 서명 인증서 없음 → 자동 서명 탐색 끔(mac)
         run: npx electron-builder --publish ${{ github.event_name == 'push' && 'always' || 'never' }}
 
+      # #157 검증(mac 전용): identity:null 이 실제로 ad-hoc 서명을 만들어냈는지 확인.
+      # macos-latest 러너 = Apple Silicon(arm64) = '손상됨' 버그가 나는 바로 그 아키텍처.
+      # ad-hoc 서명이 붙고 codesign --verify 가 통과하면, arm64 가 미서명 Mach-O 로드를 거부하는
+      # 원인이 해소된 것(= '손상됨' 차단이 사라짐). 실기 설치 확인은 별도(draft/아티팩트 dmg).
+      # 참고: spctl(Gatekeeper) 은 '미확인 개발자'라 여전히 reject 가 정상 → 검증 기준에서 제외.
+      - name: mac ad-hoc 서명 검증 (#157)
+        if: runner.os == 'macOS'
+        working-directory: electron
+        run: |
+          set -euo pipefail
+          APP=$(find dist -maxdepth 2 -name '*.app' -type d | head -1)
+          if [ -z "$APP" ]; then echo "::error::빌드된 .app 을 찾지 못함"; exit 1; fi
+          echo "검증 대상: $APP"
+          codesign -dvvv "$APP" 2>&1 | tee codesign.txt
+          if ! grep -q 'Signature=adhoc' codesign.txt; then
+            echo "::error::ad-hoc 서명이 없음(identity:null 미적용) — Apple Silicon에서 '손상됨' 재현 위험"
+            exit 1
+          fi
+          echo "ad-hoc 서명 확인 → codesign --verify 로 무결성 검사"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          echo "✅ #157 검증 통과: arm64 ad-hoc 서명 유효"
+
       # 수동 실행(테스트 빌드)일 때만: 만들어진 설치본을 다운로드 가능한 아티팩트로 올린다.
       # (태그 릴리스는 이미 릴리스 자산으로 붙으므로 불필요. unpacked 폴더는 용량 커서 제외.)
       - name: 테스트 설치본 업로드(수동 실행 전용)
